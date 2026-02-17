@@ -1,0 +1,102 @@
+import { useDispatch } from "react-redux";
+import { Link, useNavigate } from "react-router";
+import { setCurrentUser } from "../Profile/userSlice";
+import { useState } from "react";
+import { loginApi } from "../api/auth";
+
+export default function Login() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const handleLogin = async () => {
+    setError(null);
+    setLoading(true);
+
+    try {
+      const result = await loginApi(email, password);
+
+      if (!result.success) {
+        setError(result.message || "Login failed");
+        return;
+      }
+
+      dispatch(
+        setCurrentUser({
+          email: result.email,
+          firstName: result.firstName,
+          lastName: result.lastName,
+          accountNumber: result.accountNumber,
+          isStudent: result.isStudent,
+          isAdmin: result.isAdmin,
+        })
+      );
+      navigate("/main");
+    } catch (err) {
+      setError("Server error. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div id="login" className="flex justify-center items-center">
+      <div
+        id="login-box"
+        className="bg-white shadow-lg rounded-3xl max-w-sm w-full p-8 text-stone-800 mt-10"
+      >
+        <h2 className="text-3xl text-center font-semibold my-5 text-stone-700">
+          Log in
+        </h2>
+        <form id="login-form" className="space-y-4">
+          <div className="flex flex-col">
+            <label htmlFor="login-email" className="text-xs text-start ps-1">
+              Email
+            </label>
+            <input
+              id="login-email"
+              type="text"
+              placeholder="Email"
+              className="w-full rounded border border-stone-300 ps-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-stone-200"
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col relative">
+            <label htmlFor="login-password" className="text-xs text-start ps-1">
+              Password
+            </label>
+            <input
+              id="login-password"
+              type="password"
+              placeholder="Password"
+              autoComplete="off"
+              className="w-full rounded border border-stone-300 ps-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-stone-200"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {error && (
+            <div className="text-rose-700 flex mx-2 text-sm">{error}</div>
+          )}
+          <button
+            className="w-full bg-sky-600 py-2 rounded mt-4 hover:bg-sky-700 text-white text-lg font-semibold"
+            onClick={(e) => {
+              e.preventDefault();
+              handleLogin();
+            }}
+            disabled={loading}
+          >
+            {loading ? "Logging in..." : "Log in"}
+          </button>
+          <div className="text-sm text-center">
+            Do not have an account? &nbsp;
+            <Link to="/signup" className="text-sky-600 hover:text-sky-800">
+              Sign up here
+            </Link>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
