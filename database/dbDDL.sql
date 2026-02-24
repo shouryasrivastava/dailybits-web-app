@@ -19,12 +19,7 @@ CREATE TABLE user_profile (
 
 CREATE TABLE user_auth (
     email VARCHAR(100) PRIMARY KEY,
-    password VARCHAR(255),
-    google_id VARCHAR(100) UNIQUE,
-    CONSTRAINT check_oauth_login
-        CHECK (
-            (google_id IS NOT NULL) or (password IS NOT NULL)
-        ),
+    password VARCHAR(255) NOT NULL,
     FOREIGN KEY (email) REFERENCES user_profile (email) ON DELETE CASCADE
 );
 
@@ -37,436 +32,296 @@ CREATE TABLE account (
     FOREIGN KEY (email) REFERENCES user_profile (email) ON DELETE CASCADE
 );
 
-CREATE TABLE token_blacklist (
-    jti VARCHAR(255) PRIMARY KEY,
-    email VARCHAR(100) NOT NULL,
-    expired_at TIMESTAMP NOT NULL,
-    FOREIGN KEY (email) REFERENCES user_profile(email) ON DELETE CASCADE
+-- ============================================
+-- TAG TABLES (Algorithm Categories)
+-- ============================================
+CREATE TABLE difficulty_tag (
+    difficulty_id SERIAL PRIMARY KEY,
+    difficulty_level VARCHAR(10) NOT NULL UNIQUE 
+        CHECK (difficulty_level IN ('Easy', 'Medium', 'Hard'))
 );
 
+CREATE TABLE concept_tag (
+    concept_id SERIAL PRIMARY KEY,
+    concept_name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE tag (
+    tag_id SERIAL PRIMARY KEY,
+    difficulty_id INT NOT NULL,
+    concept_id INT NOT NULL,
+    FOREIGN KEY (difficulty_id) REFERENCES difficulty_tag (difficulty_id),
+    FOREIGN KEY (concept_id) REFERENCES concept_tag (concept_id),
+    UNIQUE (difficulty_id, concept_id)
+);
 
 -- ============================================
 -- PROBLEM & SOLUTION TABLES (Python Problems)
 -- ============================================
 CREATE TABLE problem (
-    problem_id        SERIAL PRIMARY KEY,
-    difficulty_level  VARCHAR(10) NOT NULL
-        CHECK (difficulty_level IN ('Easy', 'Medium', 'Hard')),
-    problem_title     VARCHAR(200) NOT NULL,
+    problem_id SERIAL PRIMARY KEY,
+    tag_id INT,
+    problem_title VARCHAR(200) NOT NULL,
     problem_description TEXT NOT NULL,
-    starter_code      TEXT,
-    is_published      BOOLEAN DEFAULT FALSE,
-    estimate_time_baseline INT
+    function_signature TEXT,
+    starter_code TEXT,
+    review_status BOOLEAN DEFAULT FALSE,
+    solution_id INT,
+    FOREIGN KEY (tag_id) REFERENCES tag (tag_id)
 );
 
 CREATE TABLE solution (
-    solution_id         SERIAL PRIMARY KEY,
-    problem_id          INT NOT NULL UNIQUE,
-    solution_code       TEXT NOT NULL,
+    solution_id SERIAL PRIMARY KEY,
+    problem_id INT,
+    solution_code TEXT NOT NULL,
     solution_explanation TEXT,
-    time_complexity     VARCHAR(50),
-    space_complexity    VARCHAR(50),
-    is_published        BOOLEAN DEFAULT FALSE,
+    time_complexity VARCHAR(50),
+    space_complexity VARCHAR(50),
+    review_status BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (problem_id) REFERENCES problem (problem_id) ON DELETE CASCADE
 );
 
-
 -- ============================================
--- TAG TABLES (Algorithm Categories)
--- ============================================
-CREATE TABLE algorithm (
-    algorithm_id SERIAL PRIMARY KEY,
-    algorithm_name VARCHAR(50) NOT NULL UNIQUE
-);
-
-CREATE TABLE problem_algorithm (
-    problem_id INT REFERENCES problem (problem_id) ON DELETE CASCADE,
-    algorithm_id INT REFERENCES algorithm (algorithm_id) ON DELETE CASCADE,
-    PRIMARY KEY (problem_id, algorithm_id)
-);
-
-
--- ============================================
--- SUBMISSION 
+-- SUBMISSION & ATTEMPT TABLES
 -- ============================================
 CREATE TABLE submission (
-    submission_id  SERIAL PRIMARY KEY,
-    problem_id     INT NOT NULL,
+    submission_id SERIAL PRIMARY KEY,
+    problem_id INT NOT NULL,
     account_number INT NOT NULL,
     submitted_code TEXT NOT NULL,
-    is_correct     BOOLEAN NOT NULL,
-    submitted_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (problem_id)     REFERENCES problem (problem_id) ON DELETE CASCADE,
+    is_correct BOOLEAN NOT NULL,
+    time_start TIMESTAMP NOT NULL,
+    time_end TIMESTAMP NOT NULL,
+    FOREIGN KEY (problem_id) REFERENCES problem (problem_id) ON DELETE CASCADE,
+    FOREIGN KEY (account_number) REFERENCES account (account_number) ON DELETE CASCADE,
+    CHECK (time_end >= time_start)
+);
+
+CREATE TABLE attempt (
+    attempt_id SERIAL PRIMARY KEY,
+    problem_id INT NOT NULL,
+    account_number INT NOT NULL,
+    attempt_number INT NOT NULL,
+    is_submitted BOOLEAN DEFAULT FALSE,
+    submission_id INT,
+    FOREIGN KEY (problem_id) REFERENCES problem (problem_id),
+    FOREIGN KEY (account_number) REFERENCES account (account_number) ON DELETE CASCADE,
+    FOREIGN KEY (submission_id) REFERENCES submission (submission_id),
+    UNIQUE (problem_id, account_number, attempt_number),
+    CHECK (attempt_number > 0)
+);
+
+-- ============================================
+-- PROGRESS TRACKING TABLE
+-- ============================================
+CREATE TABLE user_progress (
+    progress_id SERIAL PRIMARY KEY,
+    account_number INT UNIQUE NOT NULL,
+    total_problems_attempted INT DEFAULT 0,
+    total_problems_solved INT DEFAULT 0,
     FOREIGN KEY (account_number) REFERENCES account (account_number) ON DELETE CASCADE
 );
 
+-- ============================================
+-- LLM TABLES (Gemini for Study Plans)
+-- ============================================
+CREATE TABLE llm (
+    model_id SERIAL PRIMARY KEY,
+    model_name VARCHAR(50) NOT NULL
+);
 
--- ============================================
--- STUDY PLAN (Gemini for Study Plans)
--- ============================================
 -- Study Plan Generated by AI
 CREATE TABLE study_plan (
     plan_id SERIAL PRIMARY KEY,
     account_number INT NOT NULL,
+    model_id INT,
     plan_name VARCHAR(200) NOT NULL,
+    focus_area VARCHAR(100),
     time_available INT,
+    difficulty_preference VARCHAR(10),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_accepted BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (account_number) REFERENCES account (account_number) ON DELETE CASCADE
+    FOREIGN KEY (account_number) REFERENCES account (account_number) ON DELETE CASCADE,
+    FOREIGN KEY (model_id) REFERENCES llm (model_id)
 );
 
 -- Problems included in a study plan
 CREATE TABLE study_plan_problems (
     plan_id INT,
     problem_id INT,
-    estimate_time_assigned INT NOT NULL, 
+    day_number INT,
     PRIMARY KEY (plan_id, problem_id),
     FOREIGN KEY (plan_id) REFERENCES study_plan (plan_id) ON DELETE CASCADE,
     FOREIGN KEY (problem_id) REFERENCES problem (problem_id) ON DELETE CASCADE
-);
-
--- Algorithm selections for study plan
-CREATE TABLE study_plan_algorithm (
-    plan_id      INT REFERENCES study_plan (plan_id) ON DELETE CASCADE,
-    algorithm_id INT REFERENCES algorithm (algorithm_id) ON DELETE CASCADE,
-    PRIMARY KEY (plan_id, algorithm_id)
-);
-
--- Difficulty selections for study plan
-CREATE TABLE study_plan_difficulty (
-    plan_id INT REFERENCES study_plan (plan_id) ON DELETE CASCADE,
-    difficulty_level VARCHAR(10) NOT NULL
-                         CHECK (difficulty_level IN ('Easy', 'Medium', 'Hard')),
-    PRIMARY KEY (plan_id, difficulty_level)
 );
 
 -- Chat Query Table (for AI assistant interactions)
 CREATE TABLE chat_query (
     query_id SERIAL PRIMARY KEY,
     account_number INT NOT NULL,
+    model_id INT,
     user_message TEXT NOT NULL,
     ai_response TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (account_number) REFERENCES account (account_number) ON DELETE CASCADE
-);
-
-
--- ============================================
--- One unified todo list per user.
--- Each item references a problem and optionally the study plan it came from.
--- source: 'manual' = user added directly, 'study_plan' = imported from AI plan
-
-CREATE TABLE todo_item (
-    todo_id        SERIAL PRIMARY KEY,
-    account_number INT NOT NULL,
-    problem_id     INT NOT NULL,
-    plan_id        INT,
-    source         VARCHAR(20) NOT NULL DEFAULT 'manual'
-                       CHECK (source IN ('manual', 'study_plan')),
-    added_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (account_number) REFERENCES account (account_number) ON DELETE CASCADE,
-    FOREIGN KEY (problem_id)     REFERENCES problem (problem_id)     ON DELETE CASCADE,
-    FOREIGN KEY (plan_id)        REFERENCES study_plan (plan_id)     ON DELETE SET NULL
+    FOREIGN KEY (model_id) REFERENCES llm (model_id)
 );
-
-
--- ============================================
--- STUDY NOTES TABLE
--- ============================================
--- Users can write/edit one note per todo item at any time (pending or completed).
--- Stored separately so the todo_item row stays lean.
--- On hard delete of a todo_item, note is also deleted (CASCADE).
-
-CREATE TABLE study_note (
-    note_id         SERIAL PRIMARY KEY,
-    todo_id         INT NOT NULL UNIQUE,          -- one note per todo item
-    account_number  INT NOT NULL,
-    note_content    TEXT NOT NULL,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (todo_id)        REFERENCES todo_item (todo_id) ON DELETE CASCADE,
-    FOREIGN KEY (account_number) REFERENCES account (account_number) ON DELETE CASCADE
-);
-
 
 -- ============================================
 -- INDEXES
 -- ============================================
--- Solution
 CREATE INDEX idx_solution_problem_id ON solution (problem_id);
-
--- Submission
+CREATE INDEX idx_attempt_account_number ON attempt (account_number);
+CREATE INDEX idx_attempt_problem ON attempt (problem_id);
 CREATE INDEX idx_submission_account ON submission (account_number);
-CREATE INDEX idx_submission_account_problem ON submission (account_number, problem_id);
-
--- Study Plan
 CREATE INDEX idx_study_plan_account ON study_plan (account_number);
-
--- Problem Algorithm (used heavily in views)
-CREATE INDEX idx_problem_algorithm_problem ON problem_algorithm (problem_id);
-CREATE INDEX idx_problem_algorithm_algorithm ON problem_algorithm (algorithm_id);
-
--- Todo Item
-CREATE INDEX idx_todo_account ON todo_item (account_number);
-CREATE INDEX idx_todo_plan ON todo_item (plan_id);
-
--- Study Note
-CREATE INDEX idx_study_note_todo ON study_note (todo_id);
-
+CREATE INDEX idx_problem_tag ON problem (tag_id);
 
 -- ============================================
 -- VIEWS
 -- ============================================
--- Problem Library View
--- Shows all published problems with aggregated algorithm tags
--- Used by: Problem library page (all users)
-CREATE VIEW user_problem_library_view AS
-SELECT
+-- Admin view
+CREATE VIEW admin_list AS
+SELECT first_name, last_name, email
+FROM user_profile
+WHERE email IN (SELECT email FROM account WHERE admin_flag = TRUE);
+
+-- Problem review status view
+CREATE VIEW pending_problem_review AS
+SELECT 
     p.problem_id,
     p.problem_title,
     p.problem_description,
-    p.difficulty_level,
-    p.estimate_time_baseline,
-    array_agg(a.algorithm_name) AS algorithms
+    d.difficulty_level,
+    c.concept_name,
+    p.review_status
 FROM problem p
-JOIN problem_algorithm pa ON p.problem_id = pa.problem_id
-JOIN algorithm a          ON pa.algorithm_id = a.algorithm_id
-WHERE p.is_published = TRUE
-GROUP BY
+JOIN tag t ON p.tag_id = t.tag_id
+JOIN difficulty_tag d ON t.difficulty_id = d.difficulty_id
+JOIN concept_tag c ON t.concept_id = c.concept_id
+WHERE p.review_status = FALSE;
+
+-- Solution review status view
+CREATE VIEW pending_solution_review AS
+SELECT 
+    s.solution_id,
+    s.solution_code,
     p.problem_id,
     p.problem_title,
-    p.problem_description,
-    p.difficulty_level,
-    p.estimate_time_baseline;
-
--- Problem Library View
--- Shows all problems with aggregated algorithm tags
--- Used by: Problem edit page (admin only)
-CREATE VIEW admin_problem_library_view AS
-SELECT
-    p.problem_id,
-    p.problem_title,
-    p.problem_description,
-    p.difficulty_level,
-    p.is_published,
-    array_agg(a.algorithm_name) AS algorithms
-FROM problem p
-JOIN problem_algorithm pa ON p.problem_id = pa.problem_id
-JOIN algorithm a          ON pa.algorithm_id = a.algorithm_id
-GROUP BY
-    p.problem_id,
-    p.problem_title,
-    p.problem_description,
-    p.difficulty_level,
-    p.is_published;
-
--- Todo List View
--- Shows all todo items for a user with problem details and aggregated algorithms
--- Completion status derived from submission table, not stored
--- Used by: Todo list page (per user)
-CREATE VIEW todo_list_view AS
-SELECT
-    t.todo_id,
-    t.account_number,
-    t.problem_id,
-    p.problem_title,
-    p.problem_description,
-    p.difficulty_level,
-    t.added_at,
-    array_agg(a.algorithm_name) AS algorithms,
-    EXISTS (
-        SELECT 1 FROM submission s
-        WHERE s.account_number = t.account_number
-          AND s.problem_id = t.problem_id
-          AND s.is_correct = TRUE
-    ) AS is_completed
-FROM todo_item t
-JOIN problem p             ON t.problem_id   = p.problem_id
-JOIN problem_algorithm pa  ON p.problem_id   = pa.problem_id
-JOIN algorithm a           ON pa.algorithm_id = a.algorithm_id
-GROUP BY
-    t.todo_id,
-    t.account_number,
-    t.problem_id,
-    p.problem_title,
-    p.problem_description,
-    p.difficulty_level,
-    t.added_at;
-
-
--- ============================================
--- ANALYTICS VIEWS
--- ============================================
--- User Progress View
--- Powers: top 4 cards + progress by difficulty chart
--- Django filters by account_number when querying
-CREATE VIEW user_progress_view AS
-SELECT
-    a.account_number,
-
-    -- Total problems solved (distinct to avoid counting multiple correct submissions)
-    COUNT(DISTINCT CASE WHEN s.is_correct = TRUE THEN s.problem_id END)
-        AS problems_solved,
-
-    -- Total unique practice days
-    COUNT(DISTINCT s.submitted_at::DATE)
-        AS total_practice_days,
-
-    -- Most recent practice date
-    MAX(s.submitted_at::DATE)
-        AS last_practice_date,
-
-    -- Number of problems in todo list
-    (SELECT COUNT(*) FROM todo_item t WHERE t.account_number = a.account_number)
-        AS todo_count,
-
-    -- Problems solved per difficulty
-    COUNT(DISTINCT CASE WHEN p.difficulty_level = 'Easy'   AND s.is_correct = TRUE THEN s.problem_id END)
-        AS easy_solved,
-    COUNT(DISTINCT CASE WHEN p.difficulty_level = 'Medium' AND s.is_correct = TRUE THEN s.problem_id END)
-        AS medium_solved,
-    COUNT(DISTINCT CASE WHEN p.difficulty_level = 'Hard'   AND s.is_correct = TRUE THEN s.problem_id END)
-        AS hard_solved,
-
-    -- Total published problems per difficulty (same for all users)
-    (SELECT COUNT(*) FROM problem WHERE difficulty_level = 'Easy'   AND is_published = TRUE) AS easy_total,
-    (SELECT COUNT(*) FROM problem WHERE difficulty_level = 'Medium' AND is_published = TRUE) AS medium_total,
-    (SELECT COUNT(*) FROM problem WHERE difficulty_level = 'Hard'   AND is_published = TRUE) AS hard_total
-
-FROM account a
-LEFT JOIN submission s ON a.account_number = s.account_number
-LEFT JOIN problem p    ON s.problem_id = p.problem_id
-GROUP BY a.account_number;
-
--- User Recent Activity View
--- Powers: recent activity section (Django applies LIMIT 5 and filters by account_number)
--- Returns most recent submission per distinct problem per user
-CREATE VIEW user_recent_activity_view AS
-SELECT DISTINCT ON (s.account_number, s.problem_id)
-    s.account_number,
-    p.problem_id,
-    p.problem_title,
-    p.difficulty_level,
-    s.submitted_at,
-    s.is_correct
-FROM submission s
+    s.review_status
+FROM solution s
 JOIN problem p ON s.problem_id = p.problem_id
-ORDER BY s.account_number, s.problem_id, s.submitted_at DESC;
+WHERE s.review_status = FALSE;
 
--- User Algorithm Progress View
--- Powers: problems completed by algorithm chart (Option B — shows all algorithms including 0)
--- Django filters by account_number when querying
-CREATE VIEW user_algorithm_progress_view AS
-SELECT
+-- User progress summary view
+CREATE VIEW user_progress_summary AS
+SELECT 
     a.account_number,
-    alg.algorithm_id,
-    alg.algorithm_name,
-
-    -- Count of distinct problems solved per algorithm per user
-    COUNT(DISTINCT CASE WHEN s.is_correct = TRUE THEN s.problem_id END)
-        AS problems_solved
-
+    up.first_name,
+    up.last_name,
+    prog.total_problems_attempted,
+    prog.total_problems_solved,
+    CASE 
+        WHEN prog.total_problems_attempted > 0 
+        THEN ROUND((prog.total_problems_solved::DECIMAL / prog.total_problems_attempted) * 100, 2)
+        ELSE 0
+    END AS success_rate
 FROM account a
-CROSS JOIN algorithm alg
-LEFT JOIN problem_algorithm pa  ON alg.algorithm_id  = pa.algorithm_id
-LEFT JOIN problem p             ON pa.problem_id      = p.problem_id
-                                AND p.is_published    = TRUE
-LEFT JOIN submission s          ON p.problem_id       = s.problem_id
-                                AND s.account_number  = a.account_number
-GROUP BY a.account_number, alg.algorithm_id, alg.algorithm_name
-ORDER BY alg.algorithm_name;
-
-
--- ============================================
--- FUNCTIONS
--- ============================================
--- Accept Study Plan -> Bulk insert problems into todo_item
--- Called when user clicks "Accept Plan" on the study plan page
--- Duplicate checking handled in Django before calling this function
-CREATE OR REPLACE FUNCTION accept_study_plan(
-    p_account_number INT,
-    p_plan_id        INT
-)
-RETURNS void AS $$
-BEGIN
-    INSERT INTO todo_item (account_number, problem_id, plan_id, source)
-    SELECT
-        p_account_number,
-        spp.problem_id,
-        p_plan_id,
-        'study_plan'
-    FROM study_plan_problems spp
-    WHERE spp.plan_id = p_plan_id;
-END;
-$$ LANGUAGE plpgsql;
-
+JOIN user_profile up ON a.email = up.email
+LEFT JOIN user_progress prog ON a.account_number = prog.account_number;
 
 -- ============================================
 -- TRIGGERS
 -- ============================================
--- Trigger: Auto-update updated_at on study_note when note content is edited
-CREATE OR REPLACE FUNCTION refresh_study_note_updated_at()
+-- Trigger: Update attempt after correct submission
+CREATE OR REPLACE FUNCTION update_attempt_on_submission()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at := CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_study_note_updated_at
-BEFORE UPDATE ON study_note
-FOR EACH ROW
-WHEN (OLD.note_content IS DISTINCT FROM NEW.note_content)
-EXECUTE FUNCTION refresh_study_note_updated_at();
-
--- Publishing Validation
--- Trigger 1: Prevent publishing a solution if its problem is not published
-CREATE OR REPLACE FUNCTION check_solution_publish()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_problem_published BOOLEAN;
-BEGIN
-    IF NEW.is_published = TRUE THEN
-        SELECT is_published INTO v_problem_published
-        FROM problem
-        WHERE problem_id = NEW.problem_id;
-
-        IF v_problem_published = FALSE THEN
-            RAISE EXCEPTION 'Cannot publish solution: problem % is not published yet', 
-                NEW.problem_id;
-        END IF;
+    IF NEW.is_correct = TRUE THEN
+        UPDATE attempt
+        SET is_submitted = TRUE,
+            submission_id = NEW.submission_id
+        WHERE problem_id = NEW.problem_id
+          AND account_number = NEW.account_number
+          AND attempt_number = (
+              SELECT MAX(attempt_number)
+              FROM attempt
+              WHERE problem_id = NEW.problem_id
+                AND account_number = NEW.account_number
+                AND submission_id IS NULL
+          );
     END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_check_solution_publish
-BEFORE UPDATE ON solution
+CREATE TRIGGER after_correct_submission
+AFTER INSERT ON submission
 FOR EACH ROW
-EXECUTE FUNCTION check_solution_publish();
+EXECUTE FUNCTION update_attempt_on_submission();
 
--- Trigger 2: Prevent publishing a problem if it has no solution
-CREATE OR REPLACE FUNCTION check_problem_publish()
+-- Trigger: Update user progress when problem is solved
+CREATE OR REPLACE FUNCTION update_user_progress()
 RETURNS TRIGGER AS $$
-DECLARE
-    v_solution_exists BOOLEAN;
 BEGIN
-    IF NEW.is_published = TRUE THEN
-        SELECT EXISTS (
-            SELECT 1 FROM solution
-            WHERE problem_id = NEW.problem_id
-        ) INTO v_solution_exists;
-
-        IF v_solution_exists = FALSE THEN
-            RAISE EXCEPTION 'Cannot publish problem %: no solution exists yet', 
-                NEW.problem_id;
-        END IF;
+    -- Insert progress record if it doesn't exist
+    INSERT INTO user_progress (account_number, total_problems_attempted, total_problems_solved)
+    VALUES (NEW.account_number, 0, 0)
+    ON CONFLICT (account_number) DO NOTHING;
+    
+    -- Update progress
+    IF NEW.is_correct = TRUE THEN
+        UPDATE user_progress
+        SET total_problems_solved = total_problems_solved + 1,
+            total_problems_attempted = total_problems_attempted + 1
+        WHERE account_number = NEW.account_number;
+    ELSE
+        UPDATE user_progress
+        SET total_problems_attempted = total_problems_attempted + 1
+        WHERE account_number = NEW.account_number;
     END IF;
+    
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_check_problem_publish
-BEFORE UPDATE ON problem
+CREATE TRIGGER after_submission_update_progress
+AFTER INSERT ON submission
 FOR EACH ROW
-EXECUTE FUNCTION check_problem_publish();
+EXECUTE FUNCTION update_user_progress();
+
+-- ============================================
+-- FUNCTIONS (replacing stored procedures)
+-- ============================================
+-- Get student success rate
+CREATE OR REPLACE FUNCTION get_student_success_rate(input_account_number INT)
+RETURNS TABLE (
+    total_attempts BIGINT,
+    successful_submissions BIGINT,
+    success_rate DECIMAL(5,2)
+) AS $$
+DECLARE
+    v_total_attempts BIGINT;
+    v_successful_submissions BIGINT;
+    v_success_rate DECIMAL(5,2);
+BEGIN
+    -- Calculate total attempts
+    SELECT COUNT(*) INTO v_total_attempts
+    FROM attempt
+    WHERE account_number = input_account_number;
+    
+    -- Calculate successful submissions
+    SELECT COUNT(*) INTO v_successful_submissions
+    FROM submission
+    WHERE account_number = input_account_number
+      AND is_correct = TRUE;
+    
+    -- Calculate success rate
+    IF v_total_attempts > 0 THEN
+        v_success_rate := (v_successful_submissions::DECIMAL / v_total_attempts) * 100;
+    ELSE
+        v_success_rate := 0;
+    END IF;
+    
+    RETURN QUERY SELECT v_total_attempts, v_successful_submissions, v_success_rate;
+END;
+$$ LANGUAGE plpgsql;
