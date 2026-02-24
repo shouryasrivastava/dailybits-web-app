@@ -1,23 +1,16 @@
-/**
- * Entry point for DailyBits frontend
- * - Finds <div id="root"> element in index.html
- * - Renders the entire React app into that root element
- * - Wraps the app with Redux <Provider> so all components can access the store
- * - Loads the App component, which handles routing and initial data loading
- */
-
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
-import { Provider } from "react-redux";
-import store from "./store/store.ts";
+import App from "./app/App";
+import "./styles/index.css";
 
-createRoot(document.getElementById("root") as HTMLElement).render(
-  <Provider store={store}>
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Root element #root not found");
+}
+
+createRoot(rootElement).render(
+  <StrictMode>
     <App />
-  </Provider>
+  </StrictMode>
 );
-// createRoot(document.getElementById("root")!).render(
-//   <StrictMode>
-//     <App />
-//   </StrictMode>
-// );
