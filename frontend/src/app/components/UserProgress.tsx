@@ -1,15 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
-import { TrendingUp, Award, Target, Calendar, BarChart3 } from 'lucide-react';
-import { problems } from '../data/problems';
-import { getCompletedProblems, getTodoItems } from '../utils/storage';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Progress } from './ui/progress';
-import { Badge } from './ui/badge';
+import { useState, useEffect } from "react";
+import { Link } from "react-router";
+import { TrendingUp, Award, Target, Calendar, BarChart3 } from "lucide-react";
+import { problems } from "../data/problems";
+import { getCompletedProblems, getTodoItems } from "../utils/storage";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Progress } from "./ui/progress";
+import { Badge } from "./ui/badge";
 
-export function UserStatus() {
-  const [completedProblems, setCompletedProblems] = useState(getCompletedProblems());
+export function UserProgress() {
+  const [completedProblems, setCompletedProblems] = useState(
+    getCompletedProblems(),
+  );
   const [todoItems, setTodoItems] = useState(getTodoItems());
 
   useEffect(() => {
@@ -20,27 +22,27 @@ export function UserStatus() {
   // Calculate statistics
   const totalProblems = problems.length;
   const completedCount = completedProblems.length;
-  const completionRate = Math.round((completedCount / totalProblems) * 100);
+  const practiceDays = 0;
 
   const completedByDifficulty = {
     Easy: completedProblems.filter((c) => {
       const problem = problems.find((p) => p.id === c.problemId);
-      return problem?.difficulty === 'Easy';
+      return problem?.difficulty === "Easy";
     }).length,
     Medium: completedProblems.filter((c) => {
       const problem = problems.find((p) => p.id === c.problemId);
-      return problem?.difficulty === 'Medium';
+      return problem?.difficulty === "Medium";
     }).length,
     Hard: completedProblems.filter((c) => {
       const problem = problems.find((p) => p.id === c.problemId);
-      return problem?.difficulty === 'Hard';
+      return problem?.difficulty === "Hard";
     }).length,
   };
 
   const totalByDifficulty = {
-    Easy: problems.filter((p) => p.difficulty === 'Easy').length,
-    Medium: problems.filter((p) => p.difficulty === 'Medium').length,
-    Hard: problems.filter((p) => p.difficulty === 'Hard').length,
+    Easy: problems.filter((p) => p.difficulty === "Easy").length,
+    Medium: problems.filter((p) => p.difficulty === "Medium").length,
+    Hard: problems.filter((p) => p.difficulty === "Hard").length,
   };
 
   const categoriesCompleted = new Map<string, number>();
@@ -49,7 +51,7 @@ export function UserStatus() {
     if (problem) {
       categoriesCompleted.set(
         problem.category,
-        (categoriesCompleted.get(problem.category) || 0) + 1
+        (categoriesCompleted.get(problem.category) || 0) + 1,
       );
     }
   });
@@ -58,9 +60,9 @@ export function UserStatus() {
   const last30Days = new Date();
   last30Days.setDate(last30Days.getDate() - 30);
   const recentCompletions = completedProblems.filter(
-    (c) => new Date(c.completedAt) >= last30Days
+    (c) => new Date(c.completedAt) >= last30Days,
   );
-  const currentStreak = recentCompletions.length > 0 ? Math.min(recentCompletions.length, 30) : 0;
+  const recentPracticeDate = "Feb. 20, 2026";
 
   return (
     <div className="h-full flex flex-col bg-neutral-50">
@@ -68,18 +70,16 @@ export function UserStatus() {
         <h1 className="text-2xl font-semibold text-neutral-900 mb-2">
           Your Progress
         </h1>
-        <p className="text-neutral-600">
-          Track your coding practice journey
-        </p>
+        <p className="text-neutral-600">Track your coding practice journey</p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Overview Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="p-6 bg-gradient-to-br from-violet-500 to-purple-600 text-white">
+            <Card className="p-6 bg-gradient-to-br from-slate-500 to-slate-600 text-white">
               <div className="flex items-center justify-between mb-3">
-                <Award className="w-8 h-8 opacity-80" />
+                <Award className="w-8 h-8 opacity-80 text-yellow-400" />
               </div>
               <h3 className="text-3xl font-bold mb-1">{completedCount}</h3>
               <p className="text-violet-100">Problems Solved</p>
@@ -87,12 +87,12 @@ export function UserStatus() {
 
             <Card className="p-6 bg-white border border-neutral-200">
               <div className="flex items-center justify-between mb-3">
-                <Target className="w-8 h-8 text-emerald-600" />
+                <Target className="w-8 h-8 text-red-600" />
               </div>
               <h3 className="text-3xl font-bold mb-1 text-neutral-900">
-                {completionRate}%
+                {practiceDays}
               </h3>
-              <p className="text-neutral-600">Completion Rate</p>
+              <p className="text-neutral-600">Practice Days</p>
             </Card>
 
             <Card className="p-6 bg-white border border-neutral-200">
@@ -100,14 +100,14 @@ export function UserStatus() {
                 <Calendar className="w-8 h-8 text-amber-600" />
               </div>
               <h3 className="text-3xl font-bold mb-1 text-neutral-900">
-                {currentStreak}
+                {recentPracticeDate}
               </h3>
-              <p className="text-neutral-600">Day Streak</p>
+              <p className="text-neutral-600">Recent Practice</p>
             </Card>
 
             <Card className="p-6 bg-white border border-neutral-200">
               <div className="flex items-center justify-between mb-3">
-                <BarChart3 className="w-8 h-8 text-rose-600" />
+                <BarChart3 className="w-8 h-8 text-sky-600" />
               </div>
               <h3 className="text-3xl font-bold mb-1 text-neutral-900">
                 {todoItems.length}
@@ -119,7 +119,7 @@ export function UserStatus() {
           {/* Difficulty Breakdown */}
           <Card className="p-6 bg-white border border-neutral-200">
             <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-violet-600" />
+              <TrendingUp className="w-5 h-5 text-green-600" />
               Progress by Difficulty
             </h2>
             <div className="space-y-4">
@@ -134,11 +134,17 @@ export function UserStatus() {
                     </span>
                   </div>
                   <span className="text-sm font-medium text-neutral-900">
-                    {Math.round((completedByDifficulty.Easy / totalByDifficulty.Easy) * 100) || 0}%
+                    {Math.round(
+                      (completedByDifficulty.Easy / totalByDifficulty.Easy) *
+                        100,
+                    ) || 0}
+                    %
                   </span>
                 </div>
                 <Progress
-                  value={(completedByDifficulty.Easy / totalByDifficulty.Easy) * 100}
+                  value={
+                    (completedByDifficulty.Easy / totalByDifficulty.Easy) * 100
+                  }
                   className="h-2"
                 />
               </div>
@@ -150,15 +156,24 @@ export function UserStatus() {
                       Medium
                     </Badge>
                     <span className="text-sm text-neutral-600">
-                      {completedByDifficulty.Medium} / {totalByDifficulty.Medium}
+                      {completedByDifficulty.Medium} /{" "}
+                      {totalByDifficulty.Medium}
                     </span>
                   </div>
                   <span className="text-sm font-medium text-neutral-900">
-                    {Math.round((completedByDifficulty.Medium / totalByDifficulty.Medium) * 100) || 0}%
+                    {Math.round(
+                      (completedByDifficulty.Medium /
+                        totalByDifficulty.Medium) *
+                        100,
+                    ) || 0}
+                    %
                   </span>
                 </div>
                 <Progress
-                  value={(completedByDifficulty.Medium / totalByDifficulty.Medium) * 100}
+                  value={
+                    (completedByDifficulty.Medium / totalByDifficulty.Medium) *
+                    100
+                  }
                   className="h-2"
                 />
               </div>
@@ -174,11 +189,17 @@ export function UserStatus() {
                     </span>
                   </div>
                   <span className="text-sm font-medium text-neutral-900">
-                    {Math.round((completedByDifficulty.Hard / totalByDifficulty.Hard) * 100) || 0}%
+                    {Math.round(
+                      (completedByDifficulty.Hard / totalByDifficulty.Hard) *
+                        100,
+                    ) || 0}
+                    %
                   </span>
                 </div>
                 <Progress
-                  value={(completedByDifficulty.Hard / totalByDifficulty.Hard) * 100}
+                  value={
+                    (completedByDifficulty.Hard / totalByDifficulty.Hard) * 100
+                  }
                   className="h-2"
                 />
               </div>
@@ -188,7 +209,7 @@ export function UserStatus() {
           {/* Category Breakdown */}
           <Card className="p-6 bg-white border border-neutral-200">
             <h2 className="text-lg font-semibold text-neutral-900 mb-4">
-              Problems by Category
+              Problems Practiced by Algorithm
             </h2>
             {categoriesCompleted.size === 0 ? (
               <div className="text-center py-8">
@@ -225,9 +246,7 @@ export function UserStatus() {
             </h2>
             {completedProblems.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-neutral-500 mb-4">
-                  No recent activity
-                </p>
+                <p className="text-neutral-500 mb-4">No recent activity</p>
                 <Link to="/">
                   <Button>Browse Problems</Button>
                 </Link>
@@ -235,10 +254,16 @@ export function UserStatus() {
             ) : (
               <div className="space-y-3">
                 {completedProblems
-                  .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+                  .sort(
+                    (a, b) =>
+                      new Date(b.completedAt).getTime() -
+                      new Date(a.completedAt).getTime(),
+                  )
                   .slice(0, 5)
                   .map((completed) => {
-                    const problem = problems.find((p) => p.id === completed.problemId);
+                    const problem = problems.find(
+                      (p) => p.id === completed.problemId,
+                    );
                     if (!problem) return null;
 
                     return (
@@ -254,22 +279,25 @@ export function UserStatus() {
                             {problem.title}
                           </Link>
                           <p className="text-xs text-neutral-500 mt-1">
-                            Completed on{' '}
-                            {new Date(completed.completedAt).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
+                            Completed on{" "}
+                            {new Date(completed.completedAt).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              },
+                            )}
                           </p>
                         </div>
                         <Badge
                           variant="outline"
                           className={
-                            problem.difficulty === 'Easy'
-                              ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                              : problem.difficulty === 'Medium'
-                              ? 'bg-amber-100 text-amber-700 border-amber-200'
-                              : 'bg-rose-100 text-rose-700 border-rose-200'
+                            problem.difficulty === "Easy"
+                              ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                              : problem.difficulty === "Medium"
+                                ? "bg-amber-100 text-amber-700 border-amber-200"
+                                : "bg-rose-100 text-rose-700 border-rose-200"
                           }
                         >
                           {problem.difficulty}

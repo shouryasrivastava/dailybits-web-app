@@ -1,33 +1,43 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
-import { Trash2, GripVertical, CheckCircle, StickyNote } from 'lucide-react';
-import { problems } from '../data/problems';
-import { getTodoItems, removeTodoItem, updateTodoPriority, updateTodoNotes, getCompletedProblems, saveCompletedProblem, getCodeCache } from '../utils/storage';
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
+import { useState, useEffect } from "react";
+import { Link } from "react-router";
+import { Trash2, GripVertical, CheckCircle, StickyNote } from "lucide-react";
+import { problems } from "../data/problems";
+import {
+  getTodoItems,
+  removeTodoItem,
+  updateTodoPriority,
+  updateTodoNotes,
+  getCompletedProblems,
+  saveCompletedProblem,
+  getCodeCache,
+} from "../utils/storage";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './ui/select';
+} from "./ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from './ui/dialog';
-import { Textarea } from './ui/textarea';
-import { toast } from 'sonner';
-import { StudyPlanChat } from './StudyPlanChat';
+} from "./ui/dialog";
+import { Textarea } from "./ui/textarea";
+import { toast } from "sonner";
+import { StudyPlanChat } from "./StudyPlanChat";
 
 export function TodoList() {
   const [todoItems, setTodoItems] = useState(getTodoItems());
-  const [completedProblems, setCompletedProblems] = useState(getCompletedProblems());
+  const [completedProblems, setCompletedProblems] = useState(
+    getCompletedProblems(),
+  );
   const [selectedForNotes, setSelectedForNotes] = useState<string | null>(null);
-  const [currentNotes, setCurrentNotes] = useState('');
+  const [currentNotes, setCurrentNotes] = useState("");
 
   const refreshTodos = () => {
     setTodoItems(getTodoItems());
@@ -37,11 +47,11 @@ export function TodoList() {
   const handleRemove = (problemId: string) => {
     removeTodoItem(problemId);
     refreshTodos();
-    toast.success('Removed from todo list');
+    toast.success("Removed from todo list");
   };
 
   const handlePriorityChange = (problemId: string, priority: string) => {
-    updateTodoPriority(problemId, priority as 'low' | 'medium' | 'high');
+    updateTodoPriority(problemId, priority as "low" | "medium" | "high");
     refreshTodos();
   };
 
@@ -56,17 +66,17 @@ export function TodoList() {
       problemId,
       completedAt: new Date(),
       code: codeCache[problemId] || problem.starterCode,
-      notes: todoItem?.notes || '',
+      notes: todoItem?.notes || "",
     });
 
     removeTodoItem(problemId);
     refreshTodos();
-    toast.success('Problem marked as completed!');
+    toast.success("Problem marked as completed!");
   };
 
   const handleOpenNotes = (problemId: string) => {
     const todoItem = todoItems.find((item) => item.problemId === problemId);
-    setCurrentNotes(todoItem?.notes || '');
+    setCurrentNotes(todoItem?.notes || "");
     setSelectedForNotes(problemId);
   };
 
@@ -75,33 +85,33 @@ export function TodoList() {
       updateTodoNotes(selectedForNotes, currentNotes);
       refreshTodos();
       setSelectedForNotes(null);
-      toast.success('Study notes saved!');
+      toast.success("Study notes saved!");
     }
   };
 
   const getPriorityColor = (priority?: string) => {
     switch (priority) {
-      case 'high':
-        return 'bg-rose-100 text-rose-700 border-rose-200';
-      case 'medium':
-        return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'low':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case "high":
+        return "bg-rose-100 text-rose-700 border-rose-200";
+      case "medium":
+        return "bg-amber-100 text-amber-700 border-amber-200";
+      case "low":
+        return "bg-emerald-100 text-emerald-700 border-emerald-200";
       default:
-        return 'bg-neutral-100 text-neutral-700 border-neutral-200';
+        return "bg-neutral-100 text-neutral-700 border-neutral-200";
     }
   };
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'Easy':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'Medium':
-        return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'Hard':
-        return 'bg-rose-100 text-rose-700 border-rose-200';
+      case "Easy":
+        return "bg-emerald-100 text-emerald-700 border-emerald-200";
+      case "Medium":
+        return "bg-amber-100 text-amber-700 border-amber-200";
+      case "Hard":
+        return "bg-rose-100 text-rose-700 border-rose-200";
       default:
-        return 'bg-neutral-100 text-neutral-700 border-neutral-200';
+        return "bg-neutral-100 text-neutral-700 border-neutral-200";
     }
   };
 
@@ -139,7 +149,7 @@ export function TodoList() {
                   >
                     <div className="flex items-start gap-4">
                       <GripVertical className="w-5 h-5 text-neutral-400 mt-1 cursor-move" />
-                      
+
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <Link
@@ -160,7 +170,8 @@ export function TodoList() {
                         </p>
                         {item.notes && (
                           <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
-                            <span className="font-medium">Notes: </span>{item.notes}
+                            <span className="font-medium">Notes: </span>
+                            {item.notes}
                           </div>
                         )}
                         <div className="flex items-center gap-2 flex-wrap">
@@ -168,7 +179,7 @@ export function TodoList() {
                             {problem.category}
                           </span>
                           <Select
-                            value={item.priority || 'medium'}
+                            value={item.priority || "medium"}
                             onValueChange={(value) =>
                               handlePriorityChange(problem.id, value)
                             }
@@ -181,14 +192,16 @@ export function TodoList() {
                               <SelectItem value="medium">
                                 Medium Priority
                               </SelectItem>
-                              <SelectItem value="high">High Priority</SelectItem>
+                              <SelectItem value="high">
+                                High Priority
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                           <Badge
                             variant="outline"
                             className={getPriorityColor(item.priority)}
                           >
-                            {item.priority || 'medium'}
+                            {item.priority || "medium"}
                           </Badge>
                           <Button
                             variant="outline"
@@ -197,7 +210,7 @@ export function TodoList() {
                             className="h-7 text-xs gap-1"
                           >
                             <StickyNote className="w-3 h-3" />
-                            {item.notes ? 'Edit Notes' : 'Add Notes'}
+                            {item.notes ? "Edit Notes" : "Add Notes"}
                           </Button>
                           <Button
                             variant="outline"
@@ -234,7 +247,10 @@ export function TodoList() {
       </div>
 
       {/* Notes Dialog */}
-      <Dialog open={selectedForNotes !== null} onOpenChange={(open) => !open && setSelectedForNotes(null)}>
+      <Dialog
+        open={selectedForNotes !== null}
+        onOpenChange={(open) => !open && setSelectedForNotes(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Study Notes</DialogTitle>
@@ -251,9 +267,7 @@ export function TodoList() {
             <Button variant="outline" onClick={() => setSelectedForNotes(null)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveNotes}>
-              Save Notes
-            </Button>
+            <Button onClick={handleSaveNotes}>Save Notes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,15 +1,24 @@
-import { Link, Outlet, useLocation } from 'react-router';
-import { Code2, ListTodo, CheckCircle2, BookOpen, ChevronLeft, ChevronRight, BarChart3, Shield } from 'lucide-react';
-import { cn } from './ui/utils';
-import { useState } from 'react';
-import { Button } from './ui/button';
-import { getUserRole } from '../utils/storage';
+import { Link, Outlet, useLocation } from "react-router";
+import {
+  Code2,
+  ListTodo,
+  CheckCircle2,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  BarChart3,
+  Shield,
+} from "lucide-react";
+import { cn } from "./ui/utils";
+import { useState } from "react";
+import { Button } from "./ui/button";
+import { getUserRole } from "../utils/storage";
 
 const navigation = [
-  { name: 'Problems', href: '/', icon: BookOpen },
-  { name: 'Todo List', href: '/todo', icon: ListTodo },
-  { name: 'Completed', href: '/completed', icon: CheckCircle2 },
-  { name: 'Progress', href: '/status', icon: BarChart3 },
+  { name: "Problems", href: "/", icon: BookOpen },
+  { name: "Todo List", href: "/todo", icon: ListTodo },
+  { name: "Completed", href: "/completed", icon: CheckCircle2 },
+  { name: "Progress", href: "/status", icon: BarChart3 },
 ];
 
 export function Layout() {
@@ -18,28 +27,31 @@ export function Layout() {
   const userRole = getUserRole();
 
   // Add admin page to navigation if user is admin
-  const fullNavigation = userRole === 'administrator' 
-    ? [...navigation, { name: 'Admin', href: '/admin', icon: Shield }]
-    : navigation;
+  const fullNavigation =
+    userRole === "administrator"
+      ? [...navigation, { name: "Admin", href: "/admin", icon: Shield }]
+      : navigation;
 
   return (
     <div className="flex h-screen bg-neutral-50">
       {/* Sidebar */}
-      <aside 
+      <aside
         className={cn(
           "bg-white border-r border-neutral-200 flex flex-col transition-all duration-300",
-          isCollapsed ? "w-20" : "w-64"
+          isCollapsed ? "w-20" : "w-64",
         )}
       >
         <div className="p-6 border-b border-neutral-200">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl flex items-center justify-center flex-shrink-0">
               <Code2 className="w-6 h-6 text-white" />
             </div>
             {!isCollapsed && (
               <div>
-                <h1 className="font-semibold text-neutral-900">PyPractice</h1>
-                <p className="text-xs text-neutral-500">Master Python</p>
+                <h1 className="font-semibold text-neutral-900">DailyBits</h1>
+                <p className="text-xs text-neutral-500">
+                  Master Your Python Skills
+                </p>
               </div>
             )}
           </Link>
@@ -53,16 +65,18 @@ export function Layout() {
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                  "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                   isActive
-                    ? 'bg-violet-50 text-violet-700'
-                    : 'text-neutral-600 hover:bg-neutral-100',
-                  isCollapsed && 'justify-center'
+                    ? "bg-slate-50 text-slate-800"
+                    : "text-neutral-600 hover:bg-neutral-100",
+                  isCollapsed && "justify-center",
                 )}
                 title={isCollapsed ? item.name : undefined}
               >
                 <item.icon className="w-5 h-5 flex-shrink-0" />
-                {!isCollapsed && <span className="font-medium">{item.name}</span>}
+                {!isCollapsed && (
+                  <span className="font-medium">{item.name}</span>
+                )}
               </Link>
             );
           })}
@@ -75,7 +89,7 @@ export function Layout() {
             onClick={() => setIsCollapsed(!isCollapsed)}
             className={cn(
               "w-full flex items-center gap-2",
-              isCollapsed && "justify-center px-0"
+              isCollapsed && "justify-center px-0",
             )}
           >
             {isCollapsed ? (
@@ -89,7 +103,7 @@ export function Layout() {
           </Button>
           {!isCollapsed && (
             <div className="text-xs text-neutral-500 text-center mt-2">
-              © 2026 PyPractice
+              © 2026 DailyBits
             </div>
           )}
         </div>

@@ -1,18 +1,33 @@
-import { useState, useEffect } from 'react';
-import { Shield, Users, FileText, Settings, BarChart, AlertTriangle } from 'lucide-react';
-import { problems } from '../data/problems';
-import { getCompletedProblems, getTodoItems, getStudyPlans, getUserRole, setUserRole } from '../utils/storage';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Switch } from './ui/switch';
-import { Label } from './ui/label';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import {
+  Shield,
+  Users,
+  FileText,
+  Settings,
+  BarChart,
+  AlertTriangle,
+} from "lucide-react";
+import { problems } from "../data/problems";
+import {
+  getCompletedProblems,
+  getTodoItems,
+  getStudyPlans,
+  getUserRole,
+  setUserRole,
+} from "../utils/storage";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { Switch } from "./ui/switch";
+import { Label } from "./ui/label";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { toast } from "sonner";
 
 export function Admin() {
   const [userRole, setUserRoleState] = useState(getUserRole());
-  const [completedProblems, setCompletedProblems] = useState(getCompletedProblems());
+  const [completedProblems, setCompletedProblems] = useState(
+    getCompletedProblems(),
+  );
   const [todoItems, setTodoItems] = useState(getTodoItems());
   const [studyPlans, setStudyPlans] = useState(getStudyPlans());
 
@@ -23,7 +38,7 @@ export function Admin() {
   }, []);
 
   // Check if user is admin
-  if (userRole !== 'administrator') {
+  if (userRole !== "administrator") {
     return (
       <div className="h-full flex items-center justify-center bg-neutral-50">
         <Card className="p-8 max-w-md mx-4">
@@ -45,13 +60,13 @@ export function Admin() {
                 </Label>
                 <Switch
                   id="admin-toggle"
-                  checked={userRole === 'administrator'}
+                  checked={userRole === "administrator"}
                   onCheckedChange={(checked) => {
-                    const newRole = checked ? 'administrator' : 'user';
+                    const newRole = checked ? "administrator" : "user";
                     setUserRole(newRole);
                     setUserRoleState(newRole);
                     toast.success(
-                      checked ? 'Admin mode enabled' : 'Admin mode disabled'
+                      checked ? "Admin mode enabled" : "Admin mode disabled",
                     );
                   }}
                 />
@@ -71,13 +86,16 @@ export function Admin() {
 
   const problemsByCategory = new Map<string, number>();
   problems.forEach((p) => {
-    problemsByCategory.set(p.category, (problemsByCategory.get(p.category) || 0) + 1);
+    problemsByCategory.set(
+      p.category,
+      (problemsByCategory.get(p.category) || 0) + 1,
+    );
   });
 
   const problemsByDifficulty = {
-    Easy: problems.filter((p) => p.difficulty === 'Easy').length,
-    Medium: problems.filter((p) => p.difficulty === 'Medium').length,
-    Hard: problems.filter((p) => p.difficulty === 'Hard').length,
+    Easy: problems.filter((p) => p.difficulty === "Easy").length,
+    Medium: problems.filter((p) => p.difficulty === "Medium").length,
+    Hard: problems.filter((p) => p.difficulty === "Hard").length,
   };
 
   return (
@@ -91,9 +109,7 @@ export function Admin() {
                 Admin Dashboard
               </h1>
             </div>
-            <p className="text-violet-100">
-              System overview and management
-            </p>
+            <p className="text-violet-100">System overview and management</p>
           </div>
           <Badge className="bg-white text-violet-700 px-3 py-1">
             Administrator
@@ -115,13 +131,13 @@ export function Admin() {
                 </Label>
                 <Switch
                   id="admin-mode"
-                  checked={userRole === 'administrator'}
+                  checked={userRole === "administrator"}
                   onCheckedChange={(checked) => {
-                    const newRole = checked ? 'administrator' : 'user';
+                    const newRole = checked ? "administrator" : "user";
                     setUserRole(newRole);
                     setUserRoleState(newRole);
                     toast.success(
-                      checked ? 'Admin mode enabled' : 'Admin mode disabled'
+                      checked ? "Admin mode enabled" : "Admin mode disabled",
                     );
                   }}
                 />
@@ -183,7 +199,9 @@ export function Admin() {
                 <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-lg border border-emerald-200">
                   <div>
                     <p className="font-semibold text-emerald-900">Easy</p>
-                    <p className="text-sm text-emerald-700">Beginner friendly</p>
+                    <p className="text-sm text-emerald-700">
+                      Beginner friendly
+                    </p>
                   </div>
                   <span className="text-2xl font-bold text-emerald-600">
                     {problemsByDifficulty.Easy}
@@ -244,10 +262,16 @@ export function Admin() {
             ) : (
               <div className="space-y-2">
                 {completedProblems
-                  .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+                  .sort(
+                    (a, b) =>
+                      new Date(b.completedAt).getTime() -
+                      new Date(a.completedAt).getTime(),
+                  )
                   .slice(0, 10)
                   .map((completed) => {
-                    const problem = problems.find((p) => p.id === completed.problemId);
+                    const problem = problems.find(
+                      (p) => p.id === completed.problemId,
+                    );
                     if (!problem) return null;
 
                     return (
@@ -260,23 +284,26 @@ export function Admin() {
                             {problem.title}
                           </p>
                           <p className="text-xs text-neutral-500">
-                            {new Date(completed.completedAt).toLocaleString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {new Date(completed.completedAt).toLocaleString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
                           </p>
                         </div>
                         <Badge
                           variant="outline"
                           className={
-                            problem.difficulty === 'Easy'
-                              ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                              : problem.difficulty === 'Medium'
-                              ? 'bg-amber-100 text-amber-700 border-amber-200'
-                              : 'bg-rose-100 text-rose-700 border-rose-200'
+                            problem.difficulty === "Easy"
+                              ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                              : problem.difficulty === "Medium"
+                                ? "bg-amber-100 text-amber-700 border-amber-200"
+                                : "bg-rose-100 text-rose-700 border-rose-200"
                           }
                         >
                           {problem.difficulty}

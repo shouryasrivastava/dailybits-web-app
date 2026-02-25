@@ -1,24 +1,24 @@
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router';
-import { Search, Plus } from 'lucide-react';
-import { problems } from '../data/problems';
-import { getTodoItems, addTodoItem } from '../utils/storage';
-import { Badge } from './ui/badge';
-import { Input } from './ui/input';
-import { Button } from './ui/button';
-import { toast } from 'sonner';
+import { useState, useMemo } from "react";
+import { Link } from "react-router";
+import { Search, Plus } from "lucide-react";
+import { problems } from "../data/problems";
+import { getTodoItems, addTodoItem } from "../utils/storage";
+import { Badge } from "./ui/badge";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './ui/select';
+} from "./ui/select";
 
 export function ProblemList() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [difficultyFilter, setDifficultyFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [todoItems, setTodoItems] = useState(getTodoItems());
 
   const categories = useMemo(() => {
@@ -32,9 +32,9 @@ export function ProblemList() {
         problem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         problem.category.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesDifficulty =
-        difficultyFilter === 'all' || problem.difficulty === difficultyFilter;
+        difficultyFilter === "all" || problem.difficulty === difficultyFilter;
       const matchesCategory =
-        categoryFilter === 'all' || problem.category === categoryFilter;
+        categoryFilter === "all" || problem.category === categoryFilter;
       return matchesSearch && matchesDifficulty && matchesCategory;
     });
   }, [searchQuery, difficultyFilter, categoryFilter]);
@@ -45,10 +45,10 @@ export function ProblemList() {
     addTodoItem({
       problemId,
       addedAt: new Date(),
-      priority: 'medium',
+      priority: "medium",
     });
     setTodoItems(getTodoItems());
-    toast.success('Added to todo list!');
+    toast.success("Added to todo list!");
   };
 
   const isInTodo = (problemId: string) => {
@@ -57,14 +57,14 @@ export function ProblemList() {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'Easy':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'Medium':
-        return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'Hard':
-        return 'bg-rose-100 text-rose-700 border-rose-200';
+      case "Easy":
+        return "bg-emerald-100 text-emerald-700 border-emerald-200";
+      case "Medium":
+        return "bg-amber-100 text-amber-700 border-amber-200";
+      case "Hard":
+        return "bg-rose-100 text-rose-700 border-rose-200";
       default:
-        return 'bg-neutral-100 text-neutral-700 border-neutral-200';
+        return "bg-neutral-100 text-neutral-700 border-neutral-200";
     }
   };
 
@@ -103,10 +103,10 @@ export function ProblemList() {
 
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="Category" />
+              <SelectValue placeholder="Algorithm" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">All Algorithms</SelectItem>
               {categories.map((cat) => (
                 <SelectItem key={cat} value={cat}>
                   {cat}
@@ -126,11 +126,11 @@ export function ProblemList() {
               to={`/problem/${problem.id}`}
               className="block group"
             >
-              <div className="border border-neutral-200 rounded-lg p-4 hover:border-violet-300 hover:shadow-sm transition-all bg-white">
+              <div className="border border-neutral-200 rounded-lg p-4 hover:border-slate-300 hover:shadow-sm transition-all bg-white">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-medium text-neutral-900 group-hover:text-violet-600 transition-colors">
+                      <h3 className="font-medium text-neutral-900 group-hover:text-slate-600 transition-colors">
                         {problem.title}
                       </h3>
                       <Badge
@@ -158,7 +158,7 @@ export function ProblemList() {
                     className="ml-4"
                   >
                     <Plus className="w-4 h-4 mr-1" />
-                    {isInTodo(problem.id) ? 'In Todo' : 'Add to Todo'}
+                    {isInTodo(problem.id) ? "In Todo" : "Add to Todo"}
                   </Button>
                 </div>
               </div>
