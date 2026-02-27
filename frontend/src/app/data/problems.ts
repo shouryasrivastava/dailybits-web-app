@@ -5,7 +5,7 @@ export const problems: Problem[] = [
     id: "1",
     title: "Two Sum",
     difficulty: "Easy",
-    category: "Array",
+    algorithm: "Array",
     description:
       "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice. You can return the answer in any order.",
     examples: [
@@ -41,7 +41,7 @@ export const problems: Problem[] = [
     id: "2",
     title: "Valid Parentheses",
     difficulty: "Easy",
-    category: "Stack",
+    algorithm: "Stack",
     description:
       "Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid. An input string is valid if: Open brackets must be closed by the same type of brackets, and open brackets must be closed in the correct order.",
     examples: [
@@ -78,7 +78,7 @@ export const problems: Problem[] = [
     id: "3",
     title: "Merge Two Sorted Lists",
     difficulty: "Easy",
-    category: "Linked List",
+    algorithm: "Linked List",
     description:
       "You are given the heads of two sorted linked lists list1 and list2. Merge the two lists into one sorted list. The list should be made by splicing together the nodes of the first two lists. Return the head of the merged linked list.",
     examples: [
@@ -117,7 +117,7 @@ def merge_two_lists(list1, list2):
     id: "4",
     title: "Binary Search",
     difficulty: "Easy",
-    category: "Binary Search",
+    algorithm: "Binary Search",
     description:
       "Given an array of integers nums which is sorted in ascending order, and an integer target, write a function to search target in nums. If target exists, then return its index. Otherwise, return -1. You must write an algorithm with O(log n) runtime complexity.",
     examples: [
@@ -154,7 +154,7 @@ def merge_two_lists(list1, list2):
     id: "5",
     title: "Longest Substring Without Repeating Characters",
     difficulty: "Medium",
-    category: "Sliding Window",
+    algorithm: "Sliding Window",
     description:
       "Given a string s, find the length of the longest substring without repeating characters.",
     examples: [
@@ -194,7 +194,7 @@ def merge_two_lists(list1, list2):
     id: "6",
     title: "Add Two Numbers",
     difficulty: "Medium",
-    category: "Linked List",
+    algorithm: "Linked List",
     description:
       "You are given two non-empty linked lists representing two non-negative integers. The digits are stored in reverse order, and each of their nodes contains a single digit. Add the two numbers and return the sum as a linked list.",
     examples: [
@@ -234,7 +234,7 @@ def add_two_numbers(l1, l2):
     id: "7",
     title: "Container With Most Water",
     difficulty: "Medium",
-    category: "Two Pointers",
+    algorithm: "Two Pointers",
     description:
       "You are given an integer array height of length n. There are n vertical lines drawn such that the two endpoints of the ith line are (i, 0) and (i, height[i]). Find two lines that together with the x-axis form a container, such that the container contains the most water. Return the maximum amount of water a container can store.",
     examples: [
@@ -265,7 +265,7 @@ def add_two_numbers(l1, l2):
     id: "8",
     title: "Generate Parentheses",
     difficulty: "Medium",
-    category: "Backtracking",
+    algorithm: "Backtracking",
     description:
       "Given n pairs of parentheses, write a function to generate all combinations of well-formed parentheses.",
     examples: [
@@ -297,7 +297,7 @@ def add_two_numbers(l1, l2):
     id: "9",
     title: "Median of Two Sorted Arrays",
     difficulty: "Hard",
-    category: "Binary Search",
+    algorithm: "Binary Search",
     description:
       "Given two sorted arrays nums1 and nums2 of size m and n respectively, return the median of the two sorted arrays. The overall run time complexity should be O(log (m+n)).",
     examples: [
@@ -337,7 +337,7 @@ def add_two_numbers(l1, l2):
     id: "10",
     title: "Trapping Rain Water",
     difficulty: "Hard",
-    category: "Two Pointers",
+    algorithm: "Two Pointers",
     description:
       "Given n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.",
     examples: [
@@ -372,7 +372,7 @@ def add_two_numbers(l1, l2):
     id: "11",
     title: "Reverse Linked List",
     difficulty: "Easy",
-    category: "Linked List",
+    algorithm: "Linked List",
     description:
       "Given the head of a singly linked list, reverse the list, and return the reversed list.",
     examples: [
@@ -409,7 +409,7 @@ def reverse_list(head):
     id: "12",
     title: "Maximum Subarray",
     difficulty: "Medium",
-    category: "Dynamic Programming",
+    algorithm: "Dynamic Programming",
     description:
       "Given an integer array nums, find the subarray with the largest sum, and return its sum.",
     examples: [

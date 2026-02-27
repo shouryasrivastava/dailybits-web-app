@@ -1,122 +1,50 @@
-"""
-TODO:
-Remove SQL-specific fields and queries
-Update to new Problem schema
-Remove references to TAG table structure
-Update filtering logic
-
-- list_problems: returns a JSON list of all problems 
-- get_problem: returns one problem
-- submit_problem: handles submitting a solution for a problem (inserting into SUBMISSION table)  
-- add_problem: adds a new problem to the PROBLEM table
-- delete_problem: deletes a problem from the PROBLEM table
-- update_problem: updates an existing problem in the PROBLEM table
-- publish_problem: sets the Review_status of a problem to published (1)
-"""
 import json
 from django.db import connection
 from django.http import JsonResponse
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 import datetime
+from rest_framework.permissions import IsAuthenticated
 
 # List all problems
 @api_view(['GET'])
 def list_problems(request):
+    page = int(request.GET.get('page', 1)) # return page number, default 1
+    page_size = 20
+    offset = (page - 1) * page_size
+
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT 
-                p.Problem_ID,
-                p.Problem_description,
-                p.Review_status,
-                t.Tag_ID,
-                d.Difficulty_level,
-                c.SQL_concept,
-                p.Problem_title
-            FROM PROBLEM p
-            LEFT JOIN TAG t ON p.Tag_ID = t.Tag_ID
-            LEFT JOIN DIFFICULTY_TAG d ON t.Difficulty_ID = d.Difficulty_ID
-            LEFT JOIN CONCEPT_TAG c ON t.Concept_ID = c.Concept_ID
-        """)
-
+            SELECT *
+            FROM user_problem_library_view
+            LIMIT %s OFFSET %s
+        """, [page_size, offset])
+        columns = [col[0] for col in cursor.description] # type: ignore
         rows = cursor.fetchall()
 
-    results = []
-    for row in rows:
-        problem_id = row[0]
-        description = row[1] or ""
-        review_status = row[2]
-        tag_id = row[3]
-        difficulty = row[4] or ""
-        concept = row[5] or ""
-        title = row[6] or ""
-
-        # generate title
-        # p_title = description.split("\n")[0][:80]
-
-        concept_tags = (
-            [c.strip().capitalize() for c in concept.split(",")]
-            if concept else []
-        )
-
-        results.append({
-            "pId": problem_id,
-            "pTitle": title,
-            "difficultyTag": difficulty.capitalize() if difficulty else "",
-            "conceptTag": concept_tags,
-            "pDescription": description,
-            "pSolutionId": tag_id,
-            "reviewed": True if review_status == 1 else False   
-        })
-
-    return JsonResponse(results, safe=False)
+    results = [dict(zip(columns, row)) for row in rows]
+    return JsonResponse({
+        "page": page,
+        "page_size": page_size,
+        "results": results
+    }, safe=False)
 
 
 # Get a single problem
 @api_view(['GET'])
-def get_problem(request, pid):
+def get_single_problem(request, pId):
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT 
-                p.Problem_ID,
-                p.Problem_description,
-                t.Tag_ID,
-                d.Difficulty_level,
-                c.SQL_concept,
-                p.Problem_title
-            FROM PROBLEM p
-            LEFT JOIN TAG t ON p.Tag_ID = t.Tag_ID
-            LEFT JOIN DIFFICULTY_TAG d ON t.Difficulty_ID = d.Difficulty_ID
-            LEFT JOIN CONCEPT_TAG c ON t.Concept_ID = c.Concept_ID
-            WHERE p.Problem_ID = %s AND p.Review_status = 1
-        """, [pid])
+            SELECT *
+            FROM single_problem_view
+            WHERE problem_id = %s
+        """, [pId])
 
-        row = cursor.fetchone()
+        columns = [col[0] for col in cursor.description] # type: ignore
+        rows = cursor.fetchall()
 
-        if row is None:
-            return JsonResponse({"error": "Problem not found"}, status=404)
-
-    problem_id = row[0]
-    description = row[1]
-    tag_id = row[2]
-    difficulty = row[3]
-    concept = row[4]
-    title = row[5]
-
-    # p_title = description.split("\n")[0][:80] if description else ""
-    concept_tags = (
-        [c.strip() for c in concept.split(",")] if concept else []
-    )
-
-    return JsonResponse({
-        "pId": problem_id,
-        "pTitle": title,
-        "difficultyTag": difficulty.capitalize() if difficulty else "",
-        "conceptTag": concept_tags,
-        "pDescription": description,
-        "pSolutionId": tag_id,
-        "reviewed": True
-    })
+    results = [dict(zip(columns, row)) for row in rows]
+    return JsonResponse({"results": results}, safe=False)
 
 
 # Submit SQL answer
@@ -173,7 +101,7 @@ def add_problem(request):
         """, [tag_id, title, description, review_status, solution_id])
 
         cursor.execute("SELECT LAST_INSERT_ID()")
-        new_id = cursor.fetchone()[0]
+        new_id = cursor.fetchone()[0] # type: ignore
 
     return JsonResponse({"success": True, "problem_id": new_id})
 

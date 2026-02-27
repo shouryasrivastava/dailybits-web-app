@@ -16,42 +16,51 @@ Including another URLconf
 """
 from django.urls import path
 from api.views.auth_views import signup, login, get_profile, update_profile, list_users, delete_user
-from api.views.problem_views import list_problems, get_problem, submit_problem, add_problem, delete_problem,update_problem, publish_problem
+from api.views.problem_views import list_problems, get_single_problem, submit_problem, add_problem, delete_problem,update_problem, publish_problem
 from api.views.tag_views import list_tags, list_tag_problems
 from api.views.submission_views import list_submissions
-from api.views.chat_views import nl2sql
+from api.views.chat_views import nl2sql # type: ignore
 from api.views.admin_views import admin_user_stats, admin_problem_stats
 from api.views.solution_views import get_solution, add_solution, update_solution
+from api.views.todo_views import get_todo_list_view
 
 
 urlpatterns = [
+    # Authentication
     path("auth/signup/", signup),
     path("auth/login/", login),
+
+    # User Profile
     path("profile/<int:account_number>/", get_profile),
     path("profile/<int:account_number>/update/", update_profile),
+
+    # User
     path("users/", list_users),
     path("users/<int:account_number>/", delete_user),
    
+    # Problem
     path("problems/<int:pid>/update/", update_problem),
     path("problems/<int:pid>/publish/", publish_problem),
     path("problems/<int:pid>/delete/", delete_problem),
     path("problems/<int:pid>/submit/", submit_problem),
     path("problems/add/", add_problem),
-    path("problems/<int:pid>/", get_problem),
+    path("problems/<int:pid>/", get_single_problem),
     path("problems/", list_problems),
 
+    # Todo
+    path("todo/", get_todo_list_view),
+
+    # Solution
     path("solutions/<int:pId>/", get_solution),
     path("solutions/add/", add_solution),
     path("solutions/update/<int:pid>/", update_solution),
 
-    path("tags/", list_tags),
-    path("tags/<int:tag_id>/problems/", list_tag_problems),
-
+    # Submission 
     path("submissions/<int:account_number>/", list_submissions),
 
-    path("nl2sql/", nl2sql),
-    
+    # Admin 
     path("admin/user-stats/", admin_user_stats),
     path("admin/problem-stats/", admin_problem_stats),
 
+    path("nl2sql/", nl2sql),
 ]
