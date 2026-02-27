@@ -70,6 +70,21 @@ CREATE TABLE solution (
     FOREIGN KEY (problem_id) REFERENCES problem (problem_id) ON DELETE CASCADE
 );
 
+CREATE TABLE problem_example (
+    problem_id INT REFERENCES problem (problem_id) ON DELETE CASCADE,
+    example_id SERIAL,
+    example_input TEXT NOT NULL,
+    example_output TEXT NOT NULL,
+    example_explanation TEXT,
+    PRIMARY KEY (problem_id, example_id)
+);
+
+CREATE TABLE problem_constraint (
+    problem_id INT REFERENCES problem (problem_id) ON DELETE CASCADE,
+    constraint_id SERIAL,
+    problem_constraint TEXT NOT NULL,
+    PRIMARY KEY (problem_id, constraint_id) 
+);
 
 -- ============================================
 -- TAG TABLES (Algorithm Categories)
@@ -213,6 +228,9 @@ CREATE INDEX idx_todo_plan ON todo_item (plan_id);
 -- Study Note
 CREATE INDEX idx_study_note_todo ON study_note (todo_id);
 
+-- Problem Example and Constraint
+CREATE INDEX idx_problem_example_problem ON problem_example (problem_id);
+CREATE INDEX idx_problem_constraint_problem ON problem_constraint (problem_id);
 
 -- ============================================
 -- VIEWS
@@ -293,6 +311,43 @@ GROUP BY
     p.difficulty_level,
     t.added_at;
 
+-- Single Problem View
+-- Show single problem in details 
+CREATE VIEW single_problem_view AS
+SELECT
+    p.problem_id,
+    p.problem_title,
+    p.problem_description,
+    p.difficulty_level,
+    p.starter_code,
+    p.estimate_time_baseline,
+    alg.algorithms,
+    con.problem_constraints,
+    ex.examples
+FROM problem p
+JOIN (
+    SELECT pa.problem_id,
+           array_agg(DISTINCT a.algorithm_name) AS algorithms
+    FROM problem_algorithm pa
+    JOIN algorithm a ON pa.algorithm_id = a.algorithm_id
+    GROUP BY pa.problem_id
+) alg ON p.problem_id = alg.problem_id
+JOIN (
+    SELECT problem_id,
+           array_agg(DISTINCT problem_constraint) AS problem_constraints
+    FROM problem_constraint
+    GROUP BY problem_id
+) con ON p.problem_id = con.problem_id
+JOIN (
+    SELECT problem_id,
+           json_agg(json_build_object(
+               'input',       example_input,
+               'output',      example_output,
+               'explanation', example_explanation
+           )) AS examples
+    FROM problem_example
+    GROUP BY problem_id
+) ex ON p.problem_id = ex.problem_id;
 
 -- ============================================
 -- ANALYTICS VIEWS

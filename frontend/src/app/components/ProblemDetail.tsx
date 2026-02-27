@@ -152,7 +152,7 @@ export function ProblemDetail() {
 
           <div className="mb-4">
             <span className="text-sm px-3 py-1 text-neutral-700 rounded-full border-1">
-              {problem.category}
+              {problem.algorithm}
             </span>
           </div>
 
@@ -205,7 +205,7 @@ export function ProblemDetail() {
             <Button
               size="sm"
               onClick={handleMarkComplete}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="bg-slate-600 hover:bg-slate-700"
               disabled={isCompleted}
             >
               <CheckCircle className="w-4 h-4 mr-1" />

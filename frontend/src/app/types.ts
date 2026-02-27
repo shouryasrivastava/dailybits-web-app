@@ -1,10 +1,10 @@
-export type Difficulty = 'Easy' | 'Medium' | 'Hard';
+export type Difficulty = "Easy" | "Medium" | "Hard";
 
 export interface Problem {
   id: string;
   title: string;
   difficulty: Difficulty;
-  category: string;
+  algorithm: string[];
   description: string;
   examples: {
     input: string;
@@ -29,7 +29,7 @@ export interface CompletedProblem {
 export interface TodoItem {
   problemId: string;
   addedAt: Date;
-  priority?: 'low' | 'medium' | 'high';
+  priority?: "low" | "medium" | "high";
   notes?: string;
 }
 
@@ -41,5 +41,5 @@ export interface StudyPlan {
 }
 
 export interface UserRole {
-  role: 'user' | 'administrator';
+  role: "user" | "administrator";
 }

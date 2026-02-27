@@ -18,11 +18,11 @@ import {
 export function ProblemList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [algorithmFilter, setAlgorithmFilter] = useState<string>("all");
   const [todoItems, setTodoItems] = useState(getTodoItems());
 
   const categories = useMemo(() => {
-    const cats = new Set(problems.map((p) => p.category));
+    const cats = new Set(problems.map((p) => p.algorithm));
     return Array.from(cats).sort();
   }, []);
 
@@ -30,14 +30,14 @@ export function ProblemList() {
     return problems.filter((problem) => {
       const matchesSearch =
         problem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        problem.category.toLowerCase().includes(searchQuery.toLowerCase());
+        problem.algorithm.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesDifficulty =
         difficultyFilter === "all" || problem.difficulty === difficultyFilter;
-      const matchesCategory =
-        categoryFilter === "all" || problem.category === categoryFilter;
-      return matchesSearch && matchesDifficulty && matchesCategory;
+      const matchesalgorithm =
+        algorithmFilter === "all" || problem.algorithm === algorithmFilter;
+      return matchesSearch && matchesDifficulty && matchesalgorithm;
     });
-  }, [searchQuery, difficultyFilter, categoryFilter]);
+  }, [searchQuery, difficultyFilter, algorithmFilter]);
 
   const handleAddToTodo = (problemId: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -101,7 +101,7 @@ export function ProblemList() {
             </SelectContent>
           </Select>
 
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select value={algorithmFilter} onValueChange={setAlgorithmFilter}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Algorithm" />
             </SelectTrigger>
@@ -145,7 +145,7 @@ export function ProblemList() {
                     </p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md">
-                        {problem.category}
+                        {problem.algorithm}
                       </span>
                     </div>
                   </div>

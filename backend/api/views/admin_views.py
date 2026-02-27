@@ -45,7 +45,7 @@ def admin_user_stats(request):
                 a.Account_number ASC;
             """
         )
-        columns = [col[0] for col in cursor.description]
+        columns = [col[0] for col in cursor.description] # type: ignore
         rows = cursor.fetchall()
 
     results = [dict(zip(columns, row)) for row in rows]
