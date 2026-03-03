@@ -51,7 +51,7 @@ export function CompletedProblems() {
 
   return (
     <div className="h-full flex flex-col bg-white">
-      <div className="border-b border-neutral-200 p-6">
+      <div className="border-b border-neutral-200 p-6 min-h-[140px] flex flex-col justify-center">
         <h1 className="text-2xl font-semibold text-neutral-900 mb-2">
           Completed Problems
         </h1>

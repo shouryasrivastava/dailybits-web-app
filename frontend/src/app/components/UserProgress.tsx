@@ -66,7 +66,7 @@ export function UserProgress() {
 
   return (
     <div className="h-full flex flex-col bg-neutral-50">
-      <div className="bg-white border-b border-neutral-200 p-6">
+      <div className="bg-white border-b border-neutral-200 p-6 min-h-[140px] flex flex-col justify-center">
         <h1 className="text-2xl font-semibold text-neutral-900 mb-2">
           Your Progress
         </h1>

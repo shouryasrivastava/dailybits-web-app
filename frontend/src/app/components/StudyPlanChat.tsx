@@ -152,7 +152,7 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
 
   return (
     <div className="h-full flex flex-col bg-white">
-      <div className="border-b border-neutral-200 p-4">
+      <div className="border-b border-neutral-200 p-6">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-sky-700" />
           <h2 className="font-semibold text-neutral-900">

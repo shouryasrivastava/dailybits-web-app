@@ -72,7 +72,7 @@ export function ProblemList() {
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Header */}
-      <div className="border-b border-neutral-200 p-6">
+      <div className="border-b border-neutral-200 p-6 min-h-[140px]">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-semibold text-neutral-900">
             Problem List

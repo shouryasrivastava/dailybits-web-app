@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Pencil, Trash2, ArrowLeft, Shield } from "lucide-react";
+import { Trash2, ArrowLeft, Shield, ShieldOff } from "lucide-react";
 import { AppUser } from "../types";
 import {
   getUsers,
@@ -9,10 +9,7 @@ import {
   getUserRole,
 } from "../utils/storage";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import { Badge } from "./ui/badge";
-import { Switch } from "./ui/switch";
 import {
   Table,
   TableHeader,
@@ -21,13 +18,6 @@ import {
   TableRow,
   TableCell,
 } from "./ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "./ui/dialog";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -40,29 +30,12 @@ import {
 } from "./ui/alert-dialog";
 import { toast } from "sonner";
 
-interface UserFormData {
-  email: string;
-  firstName: string;
-  lastName: string;
-  registerDate: string;
-  isAdmin: boolean;
-}
-
 export function AdminUserManager() {
   const navigate = useNavigate();
   const userRole = getUserRole();
   const [users, setUsers] = useState<AppUser[]>(getUsers());
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<AppUser | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
-  const [form, setForm] = useState<UserFormData>({
-    email: "",
-    firstName: "",
-    lastName: "",
-    registerDate: "",
-    isAdmin: false,
-  });
 
   if (userRole !== "administrator") {
     navigate("/admin");
@@ -71,42 +44,16 @@ export function AdminUserManager() {
 
   const refreshUsers = () => setUsers(getUsers());
 
-  const openEditDialog = (user: AppUser) => {
-    setEditingUser(user);
-    setForm({
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      registerDate: user.registerDate,
-      isAdmin: user.isAdmin,
-    });
-    setEditDialogOpen(true);
-  };
-
   const openDeleteDialog = (userId: string) => {
     setDeletingUserId(userId);
     setDeleteDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (!form.email.trim() || !form.firstName.trim() || !form.lastName.trim()) {
-      toast.error("Email, first name, and last name are required");
-      return;
-    }
-
-    if (editingUser) {
-      updateUser({
-        id: editingUser.id,
-        email: form.email.trim(),
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
-        registerDate: form.registerDate,
-        isAdmin: form.isAdmin,
-      });
-      toast.success("User updated");
-    }
-
-    setEditDialogOpen(false);
+  const handleToggleAdmin = (user: AppUser) => {
+    updateUser({ ...user, isAdmin: !user.isAdmin });
+    toast.success(
+      user.isAdmin ? `Revoked admin access from ${user.firstName}` : `Granted admin access to ${user.firstName}`
+    );
     refreshUsers();
   };
 
@@ -186,10 +133,20 @@ export function AdminUserManager() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => openEditDialog(user)}
+                      onClick={() => handleToggleAdmin(user)}
+                      className={user.isAdmin ? "text-amber-600 hover:text-amber-700 hover:bg-amber-50" : "text-slate-600 hover:text-slate-700 hover:bg-slate-50"}
                     >
-                      <Pencil className="w-3 h-3 mr-1" />
-                      Edit
+                      {user.isAdmin ? (
+                        <>
+                          <ShieldOff className="w-3 h-3 mr-1" />
+                          Revoke Admin
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="w-3 h-3 mr-1" />
+                          Grant Admin
+                        </>
+                      )}
                     </Button>
                     <Button
                       variant="outline"
@@ -213,79 +170,6 @@ export function AdminUserManager() {
           </div>
         )}
       </div>
-
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  value={form.firstName}
-                  onChange={(e) =>
-                    setForm({ ...form, firstName: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  value={form.lastName}
-                  onChange={(e) =>
-                    setForm({ ...form, lastName: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={form.email}
-                onChange={(e) =>
-                  setForm({ ...form, email: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="registerDate">Register Date</Label>
-              <Input
-                id="registerDate"
-                type="date"
-                value={form.registerDate}
-                onChange={(e) =>
-                  setForm({ ...form, registerDate: e.target.value })
-                }
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <Switch
-                id="isAdmin"
-                checked={form.isAdmin}
-                onCheckedChange={(checked) =>
-                  setForm({ ...form, isAdmin: checked })
-                }
-              />
-              <Label htmlFor="isAdmin">Administrator</Label>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

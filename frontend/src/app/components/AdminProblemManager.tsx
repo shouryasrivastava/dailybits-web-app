@@ -70,11 +70,36 @@ const emptyForm: ProblemFormData = {
   testCases: [{ input: "", expectedOutput: "" }],
 };
 
+const DEFAULT_ALGORITHMS = [
+  "Array",
+  "Backtracking",
+  "Binary Search",
+  "Bit Manipulation",
+  "Dynamic Programming",
+  "Graph",
+  "Greedy",
+  "Hash Table",
+  "Heap",
+  "Linked List",
+  "Math",
+  "Recursion",
+  "Sliding Window",
+  "Sorting",
+  "Stack",
+  "String",
+  "Tree",
+  "Trie",
+  "Two Pointers",
+];
+
 export function AdminProblemManager() {
   const navigate = useNavigate();
   const userRole = getUserRole();
   const [problems, setProblems] = useState<Problem[]>(getProblems());
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [customAlgorithms, setCustomAlgorithms] = useState<string[]>([]);
+  const [addingCustomAlgo, setAddingCustomAlgo] = useState(false);
+  const [customAlgoInput, setCustomAlgoInput] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
   const [deletingProblemId, setDeletingProblemId] = useState<string | null>(
@@ -259,7 +284,7 @@ export function AdminProblemManager() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingProblem ? "Edit Problem" : "Add Problem"}
@@ -300,14 +325,91 @@ export function AdminProblemManager() {
                 </div>
                 <div>
                   <Label htmlFor="algorithm">Algorithm</Label>
-                  <Input
-                    id="algorithm"
-                    value={form.algorithm}
-                    onChange={(e) =>
-                      setForm({ ...form, algorithm: e.target.value })
-                    }
-                    placeholder="e.g. Array"
-                  />
+                  {addingCustomAlgo ? (
+                    <div className="flex gap-1">
+                      <Input
+                        value={customAlgoInput}
+                        onChange={(e) => setCustomAlgoInput(e.target.value)}
+                        placeholder="New algorithm..."
+                        className="h-9"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && customAlgoInput.trim()) {
+                            const newAlgo = customAlgoInput.trim();
+                            setCustomAlgorithms((prev) => [...prev, newAlgo]);
+                            setForm({ ...form, algorithm: newAlgo });
+                            setAddingCustomAlgo(false);
+                            setCustomAlgoInput("");
+                          } else if (e.key === "Escape") {
+                            setAddingCustomAlgo(false);
+                            setCustomAlgoInput("");
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 px-2"
+                        onClick={() => {
+                          if (customAlgoInput.trim()) {
+                            const newAlgo = customAlgoInput.trim();
+                            setCustomAlgorithms((prev) => [...prev, newAlgo]);
+                            setForm({ ...form, algorithm: newAlgo });
+                          }
+                          setAddingCustomAlgo(false);
+                          setCustomAlgoInput("");
+                        }}
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 px-2"
+                        onClick={() => {
+                          setAddingCustomAlgo(false);
+                          setCustomAlgoInput("");
+                        }}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select
+                      value={form.algorithm}
+                      onValueChange={(value) => {
+                        if (value === "__add_new__") {
+                          setAddingCustomAlgo(true);
+                        } else {
+                          setForm({ ...form, algorithm: value });
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="algorithm">
+                        <SelectValue placeholder="Select algorithm..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from(
+                          new Set([
+                            ...DEFAULT_ALGORITHMS,
+                            ...problems.map((p) =>
+                              typeof p.algorithm === "string" ? p.algorithm : String(p.algorithm)
+                            ),
+                            ...customAlgorithms,
+                          ])
+                        )
+                          .sort()
+                          .map((algo) => (
+                            <SelectItem key={algo} value={algo}>
+                              {algo}
+                            </SelectItem>
+                          ))}
+                        <SelectItem value="__add_new__" className="text-blue-600">
+                          + Add new algorithm...
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </div>
             </div>
