@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Trash2, GripVertical, CheckCircle, StickyNote } from "lucide-react";
-import { problems } from "../data/problems";
 import {
+  getProblems,
   getTodoItems,
   removeTodoItem,
   updateTodoPriority,
@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { StudyPlanChat } from "./StudyPlanChat";
 
 export function TodoList() {
+  const problems = getProblems();
   const [todoItems, setTodoItems] = useState(getTodoItems());
   const [completedProblems, setCompletedProblems] = useState(
     getCompletedProblems(),
@@ -176,7 +177,7 @@ export function TodoList() {
                         )}
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md">
-                            {problem.category}
+                            {problem.algorithm}
                           </span>
                           <Select
                             value={item.priority || "medium"}

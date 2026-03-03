@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router";
-import { Search, Plus } from "lucide-react";
-import { problems } from "../data/problems";
-import { getTodoItems, addTodoItem } from "../utils/storage";
+import { Search, Plus, Settings } from "lucide-react";
+import { getProblems, getTodoItems, addTodoItem, getUserRole } from "../utils/storage";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -20,11 +19,13 @@ export function ProblemList() {
   const [difficultyFilter, setDifficultyFilter] = useState<string>("all");
   const [algorithmFilter, setAlgorithmFilter] = useState<string>("all");
   const [todoItems, setTodoItems] = useState(getTodoItems());
+  const problems = getProblems();
+  const userRole = getUserRole();
 
   const categories = useMemo(() => {
     const cats = new Set(problems.map((p) => p.algorithm));
     return Array.from(cats).sort();
-  }, []);
+  }, [problems]);
 
   const filteredProblems = useMemo(() => {
     return problems.filter((problem) => {
@@ -72,9 +73,19 @@ export function ProblemList() {
     <div className="h-full flex flex-col bg-white">
       {/* Header */}
       <div className="border-b border-neutral-200 p-6">
-        <h1 className="text-2xl font-semibold text-neutral-900 mb-4">
-          Problem List
-        </h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-semibold text-neutral-900">
+            Problem List
+          </h1>
+          {userRole === "administrator" && (
+            <Link to="/admin/problems">
+              <Button variant="outline" size="sm">
+                <Settings className="w-4 h-4 mr-1" />
+                Manage Problems
+              </Button>
+            </Link>
+          )}
+        </div>
 
         {/* Search and Filters */}
         <div className="flex gap-3">

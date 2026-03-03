@@ -3,8 +3,7 @@ import { Send, Sparkles, CheckCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { ScrollArea } from "./ui/scroll-area";
-import { problems } from "../data/problems";
-import { addTodoItem } from "../utils/storage";
+import { getProblems, addTodoItem } from "../utils/storage";
 import { toast } from "sonner";
 
 interface Message {
@@ -27,6 +26,7 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<string[] | null>(null);
+  const problems = getProblems();
 
   const generateStudyPlan = (userMessage: string): string[] => {
     // Mock LLM response based on user input
@@ -50,12 +50,12 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
         .map((p) => p.id);
     } else if (lowerMessage.includes("array")) {
       selectedProblems = problems
-        .filter((p) => p.category === "Array")
+        .filter((p) => p.algorithm === "Array")
         .slice(0, 5)
         .map((p) => p.id);
     } else if (lowerMessage.includes("linked list")) {
       selectedProblems = problems
-        .filter((p) => p.category === "Linked List")
+        .filter((p) => p.algorithm === "Linked List")
         .slice(0, 5)
         .map((p) => p.id);
     } else if (
@@ -63,7 +63,7 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
       lowerMessage.includes("dp")
     ) {
       selectedProblems = problems
-        .filter((p) => p.category === "Dynamic Programming")
+        .filter((p) => p.algorithm === "Dynamic Programming")
         .concat(problems.filter((p) => p.difficulty === "Medium").slice(0, 3))
         .slice(0, 5)
         .map((p) => p.id);
@@ -88,7 +88,7 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
       "Based on your request, here's a personalized study plan:\n\n";
 
     planProblems.forEach((problem, idx) => {
-      response += `${idx + 1}. **${problem.title}** (${problem.difficulty}) - ${problem.category}\n`;
+      response += `${idx + 1}. **${problem.title}** (${problem.difficulty}) - ${problem.algorithm}\n`;
     });
 
     response +=

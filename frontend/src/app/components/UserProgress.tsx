@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { TrendingUp, Award, Target, Calendar, BarChart3 } from "lucide-react";
-import { problems } from "../data/problems";
-import { getCompletedProblems, getTodoItems } from "../utils/storage";
+import { getProblems, getCompletedProblems, getTodoItems } from "../utils/storage";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { Badge } from "./ui/badge";
 
 export function UserProgress() {
+  const problems = getProblems();
   const [completedProblems, setCompletedProblems] = useState(
     getCompletedProblems(),
   );
@@ -50,8 +50,8 @@ export function UserProgress() {
     const problem = problems.find((p) => p.id === c.problemId);
     if (problem) {
       categoriesCompleted.set(
-        problem.category,
-        (categoriesCompleted.get(problem.category) || 0) + 1,
+        problem.algorithm,
+        (categoriesCompleted.get(problem.algorithm) || 0) + 1,
       );
     }
   });

@@ -26,11 +26,10 @@ export function Layout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const userRole = getUserRole();
 
-  // Add admin page to navigation if user is admin
-  const fullNavigation =
-    userRole === "administrator"
-      ? [...navigation, { name: "Admin", href: "/admin", icon: Shield }]
-      : navigation;
+  const fullNavigation = [
+    ...navigation,
+    { name: "Admin", href: "/admin", icon: Shield },
+  ];
 
   return (
     <div className="flex h-screen bg-neutral-50">

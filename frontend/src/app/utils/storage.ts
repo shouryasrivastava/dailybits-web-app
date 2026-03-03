@@ -1,4 +1,5 @@
-import { CompletedProblem, TodoItem, StudyPlan } from '../types';
+import { CompletedProblem, TodoItem, StudyPlan, Problem, AppUser } from '../types';
+import { problems as defaultProblems } from '../data/problems';
 
 const STORAGE_KEYS = {
   COMPLETED: 'pythonpractice_completed',
@@ -6,7 +7,22 @@ const STORAGE_KEYS = {
   STUDY_PLANS: 'pythonpractice_study_plans',
   CODE_CACHE: 'pythonpractice_code_cache',
   USER_ROLE: 'pythonpractice_user_role',
+  PROBLEMS: 'pythonpractice_problems',
+  USERS: 'pythonpractice_users',
 };
+
+const defaultUsers: AppUser[] = [
+  { id: '1', email: 'ma.ruit@northeastern.edu', firstName: 'Elly', lastName: 'Ma', registerDate: '2025-01-15', isAdmin: false },
+  { id: '2', email: 'zhang.shuyi1@husky.neu.edu', firstName: 'Susie', lastName: 'Zhang', registerDate: '2025-01-20', isAdmin: false },
+  { id: '3', email: 'student@gmail.com', firstName: 'Northeastern', lastName: 'Student', registerDate: '2025-02-10', isAdmin: false },
+  { id: '4', email: 'admin@gmail.com', firstName: 'Admin', lastName: 'User', registerDate: '2025-01-01', isAdmin: true },
+  { id: '5', email: 'alex.chen@gmail.com', firstName: 'Alex', lastName: 'Chen', registerDate: '2025-02-05', isAdmin: false },
+  { id: '6', email: 'maya.patel@gmail.com', firstName: 'Maya', lastName: 'Patel', registerDate: '2025-02-07', isAdmin: false },
+  { id: '7', email: 'jordan.wells@gmail.com', firstName: 'Jordan', lastName: 'Wells', registerDate: '2025-02-08', isAdmin: false },
+  { id: '8', email: 'sofia.garcia@gmail.com', firstName: 'Sofia', lastName: 'Garcia', registerDate: '2025-02-12', isAdmin: false },
+  { id: '9', email: 'liam.brooks@gmail.com', firstName: 'Liam', lastName: 'Brooks', registerDate: '2025-02-14', isAdmin: false },
+  { id: '10', email: 'amira.hassan@gmail.com', firstName: 'Amira', lastName: 'Hassan', registerDate: '2025-02-16', isAdmin: false },
+];
 
 // Completed Problems
 export function getCompletedProblems(): CompletedProblem[] {
@@ -116,4 +132,57 @@ export function getUserRole(): 'user' | 'administrator' {
 
 export function setUserRole(role: 'user' | 'administrator'): void {
   localStorage.setItem(STORAGE_KEYS.USER_ROLE, role);
+}
+
+// Problems
+export function getProblems(): Problem[] {
+  const data = localStorage.getItem(STORAGE_KEYS.PROBLEMS);
+  if (!data) {
+    localStorage.setItem(STORAGE_KEYS.PROBLEMS, JSON.stringify(defaultProblems));
+    return defaultProblems;
+  }
+  return JSON.parse(data);
+}
+
+export function addProblem(problem: Omit<Problem, 'id'>): Problem {
+  const existing = getProblems();
+  const maxId = existing.reduce((max, p) => Math.max(max, parseInt(p.id, 10) || 0), 0);
+  const newProblem: Problem = { ...problem, id: String(maxId + 1) };
+  existing.push(newProblem);
+  localStorage.setItem(STORAGE_KEYS.PROBLEMS, JSON.stringify(existing));
+  return newProblem;
+}
+
+export function updateProblem(problem: Problem): void {
+  const existing = getProblems();
+  const updated = existing.map((p) => (p.id === problem.id ? problem : p));
+  localStorage.setItem(STORAGE_KEYS.PROBLEMS, JSON.stringify(updated));
+}
+
+export function deleteProblem(problemId: string): void {
+  const existing = getProblems();
+  const filtered = existing.filter((p) => p.id !== problemId);
+  localStorage.setItem(STORAGE_KEYS.PROBLEMS, JSON.stringify(filtered));
+}
+
+// Users
+export function getUsers(): AppUser[] {
+  const data = localStorage.getItem(STORAGE_KEYS.USERS);
+  if (!data) {
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(defaultUsers));
+    return defaultUsers;
+  }
+  return JSON.parse(data);
+}
+
+export function updateUser(user: AppUser): void {
+  const existing = getUsers();
+  const updated = existing.map((u) => (u.id === user.id ? user : u));
+  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
+}
+
+export function deleteUser(userId: string): void {
+  const existing = getUsers();
+  const filtered = existing.filter((u) => u.id !== userId);
+  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filtered));
 }

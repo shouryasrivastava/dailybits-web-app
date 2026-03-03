@@ -6,6 +6,8 @@ import { TodoList } from "./components/TodoList";
 import { CompletedProblems } from "./components/CompletedProblems";
 import { UserProgress } from "./components/UserProgress";
 import { Admin } from "./components/Admin";
+import { AdminProblemManager } from "./components/AdminProblemManager";
+import { AdminUserManager } from "./components/AdminUserManager";
 
 export const router = createBrowserRouter([
   {
@@ -18,6 +20,8 @@ export const router = createBrowserRouter([
       { path: "completed", Component: CompletedProblems },
       { path: "status", Component: UserProgress },
       { path: "admin", Component: Admin },
+      { path: "admin/problems", Component: AdminProblemManager },
+      { path: "admin/users", Component: AdminUserManager },
     ],
   },
 ]);

@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import Editor from "@monaco-editor/react";
 import { ChevronLeft, Play, CheckCircle, BookmarkPlus } from "lucide-react";
-import { problems } from "../data/problems";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Textarea } from "./ui/textarea";
 import { toast } from "sonner";
 import {
+  getProblems,
   getCompletedProblems,
   saveCompletedProblem,
   saveCodeCache,
@@ -21,6 +21,7 @@ import {
 export function ProblemDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const problems = getProblems();
   const problem = problems.find((p) => p.id === id);
 
   const [code, setCode] = useState("");

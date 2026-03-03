@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Calendar, Trash2, Edit3 } from 'lucide-react';
-import { problems } from '../data/problems';
-import { getCompletedProblems, removeCompletedProblem } from '../utils/storage';
+import { getProblems, getCompletedProblems, removeCompletedProblem } from '../utils/storage';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
@@ -16,6 +15,7 @@ import { toast } from 'sonner';
 import Editor from '@monaco-editor/react';
 
 export function CompletedProblems() {
+  const problems = getProblems();
   const [completedProblems, setCompletedProblems] = useState(
     getCompletedProblems()
   );
@@ -125,7 +125,7 @@ export function CompletedProblems() {
 
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md">
-                      {problem.category}
+                      {problem.algorithm}
                     </span>
                   </div>
 

@@ -43,3 +43,12 @@ export interface StudyPlan {
 export interface UserRole {
   role: "user" | "administrator";
 }
+
+export interface AppUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  registerDate: string;
+  isAdmin: boolean;
+}
