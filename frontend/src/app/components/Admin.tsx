@@ -1,20 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import {
-  Shield,
   Users,
   FileText,
   Settings,
   BookOpen,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
-import {
-  getProblems,
-  getUsers,
-  getStudyPlans,
-  getUserRole,
-  setUserRole,
-} from "../utils/storage";
+import { getUserRole, setUserRole } from "../utils/storage";
+import { fetchDashboardStats, DashboardStats } from "../utils/api";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
@@ -32,6 +27,17 @@ import { toast } from "sonner";
 export function Admin() {
   // Local state mirrors localStorage role so the toggle re-renders immediately
   const [userRole, setUserRoleState] = useState(getUserRole());
+
+  // Stats loaded from the backend API
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardStats()
+      .then(setStats)
+      .catch((err) => toast.error(`Failed to load stats: ${err.message}`))
+      .finally(() => setLoading(false));
+  }, []);
 
   // Non-admin users see an access-denied screen with a demo toggle
   if (userRole !== "administrator") {
@@ -74,13 +80,6 @@ export function Admin() {
     );
   }
 
-  // Load data from localStorage to compute overview stats
-  const problems = getProblems();
-  const users = getUsers();
-  const totalProblems = problems.length;
-  const totalUsers = users.length;
-  const studyPlans = getStudyPlans();
-
   return (
     <div className="h-full flex flex-col bg-neutral-50">
       <div className="bg-white border-b border-neutral-200 p-6 min-h-[140px] flex flex-col justify-center">
@@ -118,14 +117,19 @@ export function Admin() {
             </AlertDescription>
           </Alert>
 
-          {/* Overview Stats */}
+          {/* Overview Stats — show spinner while loading from the backend */}
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-4">
               <Card className="p-6 bg-gradient-to-br from-slate-500 to-slate-600 text-white">
                 <div className="flex items-center justify-between mb-3">
                   <FileText className="w-8 h-8 opacity-80 text-yellow-400" />
                 </div>
-                <h3 className="text-3xl font-bold mb-1">{totalProblems}</h3>
+                <h3 className="text-3xl font-bold mb-1">{stats?.totalProblems ?? 0}</h3>
                 <p className="text-slate-100">Total Problems</p>
               </Card>
               <Link to="/admin/problems">
@@ -142,7 +146,7 @@ export function Admin() {
                   <Users className="w-8 h-8 text-emerald-600" />
                 </div>
                 <h3 className="text-3xl font-bold mb-1 text-neutral-900">
-                  {totalUsers}
+                  {stats?.totalUsers ?? 0}
                 </h3>
                 <p className="text-neutral-600">Active Users</p>
               </Card>
@@ -159,11 +163,12 @@ export function Admin() {
                 <BookOpen className="w-8 h-8 text-sky-600" />
               </div>
               <h3 className="text-3xl font-bold mb-1 text-neutral-900">
-                {studyPlans.length}
+                {stats?.totalStudyPlans ?? 0}
               </h3>
               <p className="text-neutral-600">Study Plans</p>
             </Card>
           </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Plus, Pencil, Trash2, ArrowLeft, X } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeft, X, Loader2 } from "lucide-react";
 import { Problem, Difficulty } from "../types";
+import { getUserRole } from "../utils/storage";
 import {
-  getProblems,
-  addProblem,
-  updateProblem,
-  deleteProblem,
-  getUserRole,
-} from "../utils/storage";
+  fetchAdminProblems,
+  fetchAdminProblem,
+  createProblem,
+  updateProblemApi,
+  deleteProblemApi,
+  fetchAlgorithms,
+  apiProblemListToFrontend,
+  apiProblemDetailToFrontend,
+  ProblemPayload,
+} from "../utils/api";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -72,57 +77,41 @@ const emptyForm: ProblemFormData = {
   testCases: [{ input: "", expectedOutput: "" }],
 };
 
-/** Pre-defined algorithm categories shown in the algorithm dropdown */
-const DEFAULT_ALGORITHMS = [
-  "Array",
-  "Backtracking",
-  "Binary Search",
-  "Bit Manipulation",
-  "Dynamic Programming",
-  "Graph",
-  "Greedy",
-  "Hash Table",
-  "Heap",
-  "Linked List",
-  "Math",
-  "Recursion",
-  "Sliding Window",
-  "Sorting",
-  "Stack",
-  "String",
-  "Tree",
-  "Trie",
-  "Two Pointers",
+/** Hardcoded fallback used if the backend algorithm list fails to load */
+const FALLBACK_ALGORITHMS = [
+  "Array", "Backtracking", "Binary Search", "Bit Manipulation",
+  "Dynamic Programming", "Graph", "Greedy", "Hash Table", "Heap",
+  "Linked List", "Math", "Recursion", "Sliding Window", "Sorting",
+  "Stack", "String", "Tree", "Trie", "Two Pointers",
 ];
 
 /**
  * AdminProblemManager — full CRUD interface for coding problems.
  * Admins can add, edit, and delete problems via a table view.
- * The add/edit dialog includes fields for title, difficulty, algorithm
- * (dropdown with "add new" option), description, examples, constraints,
- * starter code, and test cases.
+ * All data is read/written through the Django backend API.
  */
 export function AdminProblemManager() {
   const navigate = useNavigate();
   const userRole = getUserRole();
-  const [problems, setProblems] = useState<Problem[]>(getProblems());
+
+  // Problem list loaded from the backend
+  const [problems, setProblems] = useState<Problem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Add/Edit dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
   const [form, setForm] = useState<ProblemFormData>(emptyForm);
 
-  // Algorithm dropdown: tracks user-added algorithms for the current session
+  // Algorithm dropdown: DB-loaded list + session-added custom names
+  const [dbAlgorithms, setDbAlgorithms] = useState<string[]>([]);
   const [customAlgorithms, setCustomAlgorithms] = useState<string[]>([]);
-  // When true, the algorithm dropdown is replaced with a text input for a new algorithm
   const [addingCustomAlgo, setAddingCustomAlgo] = useState(false);
   const [customAlgoInput, setCustomAlgoInput] = useState("");
 
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletingProblemId, setDeletingProblemId] = useState<string | null>(
-    null,
-  );
+  const [deletingProblemId, setDeletingProblemId] = useState<string | null>(null);
 
   // Redirect non-admin users back to the admin landing page
   if (userRole !== "administrator") {
@@ -130,8 +119,25 @@ export function AdminProblemManager() {
     return null;
   }
 
-  /** Re-read problems from localStorage to sync the table after mutations */
-  const refreshProblems = () => setProblems(getProblems());
+  /** Fetch the problem list from the backend */
+  const refreshProblems = async () => {
+    try {
+      const data = await fetchAdminProblems();
+      setProblems(data.map(apiProblemListToFrontend));
+    } catch (err: any) {
+      toast.error(`Failed to load problems: ${err.message}`);
+    }
+  };
+
+  // Load problems and algorithms on mount
+  useEffect(() => {
+    refreshProblems().finally(() => setLoading(false));
+
+    // Load algorithm names from the DB for the dropdown
+    fetchAlgorithms()
+      .then((algos) => setDbAlgorithms(algos.map((a) => a.name)))
+      .catch(() => setDbAlgorithms(FALLBACK_ALGORITHMS));
+  }, []);
 
   /** Open the dialog in "add" mode with a blank form */
   const openAddDialog = () => {
@@ -140,21 +146,31 @@ export function AdminProblemManager() {
     setDialogOpen(true);
   };
 
-  /** Open the dialog in "edit" mode, pre-filled with the selected problem's data */
-  const openEditDialog = (problem: Problem) => {
-    setEditingProblem(problem);
-    setForm({
-      title: problem.title,
-      difficulty: problem.difficulty,
-      algorithm: problem.algorithm as unknown as string,
-      description: problem.description,
-      // Ensure at least one empty row so the user always sees an input field
-      examples: problem.examples.length > 0 ? problem.examples : [{ input: "", output: "" }],
-      constraints: problem.constraints.length > 0 ? problem.constraints : [""],
-      starterCode: problem.starterCode,
-      testCases: problem.testCases.length > 0 ? problem.testCases : [{ input: "", expectedOutput: "" }],
-    });
-    setDialogOpen(true);
+  /** Open the dialog in "edit" mode — fetches full problem detail from the backend */
+  const openEditDialog = async (problem: Problem) => {
+    try {
+      const detail = await fetchAdminProblem(Number(problem.id));
+      const fullProblem = apiProblemDetailToFrontend(detail);
+      setEditingProblem(fullProblem);
+      setForm({
+        title: fullProblem.title,
+        difficulty: fullProblem.difficulty,
+        // Use the first algorithm for the single-select form field
+        algorithm: fullProblem.algorithm[0] || "",
+        description: fullProblem.description,
+        examples: fullProblem.examples.length > 0
+          ? fullProblem.examples
+          : [{ input: "", output: "" }],
+        constraints: fullProblem.constraints.length > 0
+          ? fullProblem.constraints
+          : [""],
+        starterCode: fullProblem.starterCode,
+        testCases: [{ input: "", expectedOutput: "" }],
+      });
+      setDialogOpen(true);
+    } catch (err: any) {
+      toast.error(`Failed to load problem: ${err.message}`);
+    }
   };
 
   /** Show the delete confirmation dialog for a specific problem */
@@ -163,47 +179,50 @@ export function AdminProblemManager() {
     setDeleteDialogOpen(true);
   };
 
-  /** Validate and save the form — creates a new problem or updates an existing one */
-  const handleSave = () => {
+  /** Validate the form and send a create/update request to the backend */
+  const handleSave = async () => {
     if (!form.title.trim() || !form.algorithm.trim()) {
       toast.error("Title and algorithm are required");
       return;
     }
 
-    // Strip empty rows from dynamic lists before saving
-    const problemData = {
+    // Build the payload, stripping empty rows from dynamic lists
+    const payload: ProblemPayload = {
       title: form.title.trim(),
       difficulty: form.difficulty,
-      algorithm: form.algorithm.trim() as unknown as string[],
       description: form.description.trim(),
+      starterCode: form.starterCode,
+      algorithms: [form.algorithm.trim()],
       examples: form.examples.filter((e) => e.input.trim() || e.output.trim()),
       constraints: form.constraints.filter((c) => c.trim()),
-      starterCode: form.starterCode,
-      testCases: form.testCases.filter(
-        (t) => t.input.trim() || t.expectedOutput.trim(),
-      ),
     };
 
-    if (editingProblem) {
-      updateProblem({ ...problemData, id: editingProblem.id });
-      toast.success("Problem updated");
-    } else {
-      addProblem(problemData);
-      toast.success("Problem added");
+    try {
+      if (editingProblem) {
+        await updateProblemApi(Number(editingProblem.id), payload);
+        toast.success("Problem updated");
+      } else {
+        await createProblem(payload);
+        toast.success("Problem added");
+      }
+      setDialogOpen(false);
+      await refreshProblems();
+    } catch (err: any) {
+      toast.error(`Save failed: ${err.message}`);
     }
-
-    setDialogOpen(false);
-    refreshProblems();
   };
 
-  /** Confirm deletion: remove the problem and close the dialog */
-  const handleDelete = () => {
-    if (deletingProblemId) {
-      deleteProblem(deletingProblemId);
+  /** Send a delete request to the backend and refresh the list */
+  const handleDelete = async () => {
+    if (!deletingProblemId) return;
+    try {
+      await deleteProblemApi(Number(deletingProblemId));
       toast.success("Problem deleted");
       setDeleteDialogOpen(false);
       setDeletingProblemId(null);
-      refreshProblems();
+      await refreshProblems();
+    } catch (err: any) {
+      toast.error(`Delete failed: ${err.message}`);
     }
   };
 
@@ -220,6 +239,17 @@ export function AdminProblemManager() {
         return "bg-neutral-100 text-neutral-700 border-neutral-200";
     }
   };
+
+  /** De-duplicated sorted algorithm list for the dropdown */
+  const algorithmOptions = Array.from(
+    new Set([
+      ...dbAlgorithms,
+      ...problems.flatMap((p) =>
+        Array.isArray(p.algorithm) ? p.algorithm : [String(p.algorithm)]
+      ),
+      ...customAlgorithms,
+    ])
+  ).sort();
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -246,6 +276,13 @@ export function AdminProblemManager() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
+        {/* Loading spinner while fetching from backend */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
+          </div>
+        ) : (
+        <>
         <Table>
           <TableHeader>
             <TableRow>
@@ -271,10 +308,14 @@ export function AdminProblemManager() {
                     {problem.difficulty}
                   </Badge>
                 </TableCell>
+                {/* Show algorithm tags — API returns an array */}
                 <TableCell>
-                  <span className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md">
-                    {problem.algorithm}
-                  </span>
+                  {(Array.isArray(problem.algorithm) ? problem.algorithm : [problem.algorithm])
+                    .map((algo) => (
+                      <span key={algo} className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md mr-1">
+                        {algo}
+                      </span>
+                    ))}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -306,6 +347,8 @@ export function AdminProblemManager() {
           <div className="text-center py-12">
             <p className="text-neutral-500">No problems yet</p>
           </div>
+        )}
+        </>
         )}
       </div>
 
@@ -350,8 +393,7 @@ export function AdminProblemManager() {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Algorithm selector: shows a dropdown by default, or a text
-                    input when the user picks "+ Add new algorithm..." */}
+                {/* Algorithm selector: dropdown by default, text input when "Add new" is chosen */}
                 <div>
                   <Label htmlFor="algorithm">Algorithm</Label>
                   {addingCustomAlgo ? (
@@ -418,23 +460,11 @@ export function AdminProblemManager() {
                         <SelectValue placeholder="Select algorithm..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {/* Merge default, existing, and user-added algorithms into a
-                            de-duplicated sorted list */}
-                        {Array.from(
-                          new Set([
-                            ...DEFAULT_ALGORITHMS,
-                            ...problems.map((p) =>
-                              typeof p.algorithm === "string" ? p.algorithm : String(p.algorithm)
-                            ),
-                            ...customAlgorithms,
-                          ])
-                        )
-                          .sort()
-                          .map((algo) => (
-                            <SelectItem key={algo} value={algo}>
-                              {algo}
-                            </SelectItem>
-                          ))}
+                        {algorithmOptions.map((algo) => (
+                          <SelectItem key={algo} value={algo}>
+                            {algo}
+                          </SelectItem>
+                        ))}
                         {/* Sentinel value that triggers the custom algorithm input */}
                         <SelectItem value="__add_new__" className="text-blue-600">
                           + Add new algorithm...
@@ -594,7 +624,7 @@ export function AdminProblemManager() {
               />
             </div>
 
-            {/* Test Cases */}
+            {/* Test Cases (frontend-only — not persisted to the database) */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label>Test Cases</Label>

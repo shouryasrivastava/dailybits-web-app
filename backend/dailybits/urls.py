@@ -20,7 +20,12 @@ from api.views.problem_views import list_problems, get_single_problem, submit_pr
 from api.views.tag_views import list_tags, list_tag_problems
 from api.views.submission_views import list_submissions
 from api.views.chat_views import nl2sql # type: ignore
-from api.views.admin_views import admin_user_stats, admin_problem_stats
+from api.views.admin_views import (
+    admin_user_stats, admin_problem_stats,
+    admin_dashboard_stats, admin_list_problems, admin_get_problem,
+    admin_add_problem, admin_update_problem, admin_delete_problem,
+    admin_toggle_user_admin, admin_list_algorithms,
+)
 from api.views.solution_views import get_solution, add_solution, update_solution
 from api.views.todo_views import get_todo_list_view
 
@@ -58,9 +63,19 @@ urlpatterns = [
     # Submission 
     path("submissions/<int:account_number>/", list_submissions),
 
-    # Admin 
+    # Admin (legacy analytics)
     path("admin/user-stats/", admin_user_stats),
     path("admin/problem-stats/", admin_problem_stats),
+
+    # Admin (new — dashboard, problem CRUD, user management, algorithms)
+    path("admin/dashboard-stats/", admin_dashboard_stats),
+    path("admin/problems/", admin_list_problems),
+    path("admin/problems/add/", admin_add_problem),
+    path("admin/problems/<int:pid>/", admin_get_problem),
+    path("admin/problems/<int:pid>/update/", admin_update_problem),
+    path("admin/problems/<int:pid>/delete/", admin_delete_problem),
+    path("admin/users/<int:account_number>/toggle-admin/", admin_toggle_user_admin),
+    path("admin/algorithms/", admin_list_algorithms),
 
     path("nl2sql/", nl2sql),
 ]
