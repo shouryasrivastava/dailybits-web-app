@@ -30,25 +30,36 @@ import {
 } from "./ui/alert-dialog";
 import { toast } from "sonner";
 
+/**
+ * AdminUserManager — user management interface for administrators.
+ * Admins can grant/revoke admin privileges and delete user accounts.
+ * User info (name, email, etc.) is read-only in this view.
+ */
 export function AdminUserManager() {
   const navigate = useNavigate();
   const userRole = getUserRole();
   const [users, setUsers] = useState<AppUser[]>(getUsers());
+
+  // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
+  // Redirect non-admin users back to the admin landing page
   if (userRole !== "administrator") {
     navigate("/admin");
     return null;
   }
 
+  /** Re-read users from localStorage to sync the table after mutations */
   const refreshUsers = () => setUsers(getUsers());
 
+  /** Show the delete confirmation dialog for a specific user */
   const openDeleteDialog = (userId: string) => {
     setDeletingUserId(userId);
     setDeleteDialogOpen(true);
   };
 
+  /** Toggle a user's admin status and show a confirmation toast */
   const handleToggleAdmin = (user: AppUser) => {
     updateUser({ ...user, isAdmin: !user.isAdmin });
     toast.success(
@@ -57,6 +68,7 @@ export function AdminUserManager() {
     refreshUsers();
   };
 
+  /** Confirm deletion: remove the user and close the dialog */
   const handleDelete = () => {
     if (deletingUserId) {
       deleteUser(deletingUserId);
@@ -69,6 +81,7 @@ export function AdminUserManager() {
 
   return (
     <div className="h-full flex flex-col bg-white">
+      {/* Header with back navigation */}
       <div className="border-b border-neutral-200 p-6">
         <div className="flex items-center gap-3">
           <Button
@@ -85,6 +98,7 @@ export function AdminUserManager() {
         </div>
       </div>
 
+      {/* User table with role badges and action buttons */}
       <div className="flex-1 overflow-y-auto p-6">
         <Table>
           <TableHeader>

@@ -22,10 +22,18 @@ import { Label } from "./ui/label";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { toast } from "sonner";
 
+/**
+ * Admin Dashboard — main landing page for administrators.
+ * Shows system-wide stats (problems, users, study plans) and links
+ * to the Problem Manager and User Manager sub-pages.
+ * Non-admin users see an "Access Denied" screen with a demo toggle
+ * to enable admin mode for testing purposes.
+ */
 export function Admin() {
+  // Local state mirrors localStorage role so the toggle re-renders immediately
   const [userRole, setUserRoleState] = useState(getUserRole());
 
-  // Check if user is admin
+  // Non-admin users see an access-denied screen with a demo toggle
   if (userRole !== "administrator") {
     return (
       <div className="h-full flex items-center justify-center bg-neutral-50">
@@ -66,7 +74,7 @@ export function Admin() {
     );
   }
 
-  // Calculate statistics
+  // Load data from localStorage to compute overview stats
   const problems = getProblems();
   const users = getUsers();
   const totalProblems = problems.length;

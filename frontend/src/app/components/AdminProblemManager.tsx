@@ -48,6 +48,7 @@ import {
 } from "./ui/select";
 import { toast } from "sonner";
 
+/** Shape of the add/edit problem form fields */
 interface ProblemFormData {
   title: string;
   difficulty: Difficulty;
@@ -59,6 +60,7 @@ interface ProblemFormData {
   testCases: { input: string; expectedOutput: string }[];
 }
 
+/** Default blank form used when adding a new problem or resetting the dialog */
 const emptyForm: ProblemFormData = {
   title: "",
   difficulty: "Easy",
@@ -70,6 +72,7 @@ const emptyForm: ProblemFormData = {
   testCases: [{ input: "", expectedOutput: "" }],
 };
 
+/** Pre-defined algorithm categories shown in the algorithm dropdown */
 const DEFAULT_ALGORITHMS = [
   "Array",
   "Backtracking",
@@ -92,34 +95,52 @@ const DEFAULT_ALGORITHMS = [
   "Two Pointers",
 ];
 
+/**
+ * AdminProblemManager — full CRUD interface for coding problems.
+ * Admins can add, edit, and delete problems via a table view.
+ * The add/edit dialog includes fields for title, difficulty, algorithm
+ * (dropdown with "add new" option), description, examples, constraints,
+ * starter code, and test cases.
+ */
 export function AdminProblemManager() {
   const navigate = useNavigate();
   const userRole = getUserRole();
   const [problems, setProblems] = useState<Problem[]>(getProblems());
+
+  // Add/Edit dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
+  const [form, setForm] = useState<ProblemFormData>(emptyForm);
+
+  // Algorithm dropdown: tracks user-added algorithms for the current session
   const [customAlgorithms, setCustomAlgorithms] = useState<string[]>([]);
+  // When true, the algorithm dropdown is replaced with a text input for a new algorithm
   const [addingCustomAlgo, setAddingCustomAlgo] = useState(false);
   const [customAlgoInput, setCustomAlgoInput] = useState("");
+
+  // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
   const [deletingProblemId, setDeletingProblemId] = useState<string | null>(
     null,
   );
-  const [form, setForm] = useState<ProblemFormData>(emptyForm);
 
+  // Redirect non-admin users back to the admin landing page
   if (userRole !== "administrator") {
     navigate("/admin");
     return null;
   }
 
+  /** Re-read problems from localStorage to sync the table after mutations */
   const refreshProblems = () => setProblems(getProblems());
 
+  /** Open the dialog in "add" mode with a blank form */
   const openAddDialog = () => {
     setEditingProblem(null);
     setForm(emptyForm);
     setDialogOpen(true);
   };
 
+  /** Open the dialog in "edit" mode, pre-filled with the selected problem's data */
   const openEditDialog = (problem: Problem) => {
     setEditingProblem(problem);
     setForm({
@@ -127,6 +148,7 @@ export function AdminProblemManager() {
       difficulty: problem.difficulty,
       algorithm: problem.algorithm as unknown as string,
       description: problem.description,
+      // Ensure at least one empty row so the user always sees an input field
       examples: problem.examples.length > 0 ? problem.examples : [{ input: "", output: "" }],
       constraints: problem.constraints.length > 0 ? problem.constraints : [""],
       starterCode: problem.starterCode,
@@ -135,17 +157,20 @@ export function AdminProblemManager() {
     setDialogOpen(true);
   };
 
+  /** Show the delete confirmation dialog for a specific problem */
   const openDeleteDialog = (problemId: string) => {
     setDeletingProblemId(problemId);
     setDeleteDialogOpen(true);
   };
 
+  /** Validate and save the form — creates a new problem or updates an existing one */
   const handleSave = () => {
     if (!form.title.trim() || !form.algorithm.trim()) {
       toast.error("Title and algorithm are required");
       return;
     }
 
+    // Strip empty rows from dynamic lists before saving
     const problemData = {
       title: form.title.trim(),
       difficulty: form.difficulty,
@@ -171,6 +196,7 @@ export function AdminProblemManager() {
     refreshProblems();
   };
 
+  /** Confirm deletion: remove the problem and close the dialog */
   const handleDelete = () => {
     if (deletingProblemId) {
       deleteProblem(deletingProblemId);
@@ -181,6 +207,7 @@ export function AdminProblemManager() {
     }
   };
 
+  /** Return Tailwind color classes for a difficulty badge */
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "Easy":
@@ -323,6 +350,8 @@ export function AdminProblemManager() {
                     </SelectContent>
                   </Select>
                 </div>
+                {/* Algorithm selector: shows a dropdown by default, or a text
+                    input when the user picks "+ Add new algorithm..." */}
                 <div>
                   <Label htmlFor="algorithm">Algorithm</Label>
                   {addingCustomAlgo ? (
@@ -389,6 +418,8 @@ export function AdminProblemManager() {
                         <SelectValue placeholder="Select algorithm..." />
                       </SelectTrigger>
                       <SelectContent>
+                        {/* Merge default, existing, and user-added algorithms into a
+                            de-duplicated sorted list */}
                         {Array.from(
                           new Set([
                             ...DEFAULT_ALGORITHMS,
@@ -404,6 +435,7 @@ export function AdminProblemManager() {
                               {algo}
                             </SelectItem>
                           ))}
+                        {/* Sentinel value that triggers the custom algorithm input */}
                         <SelectItem value="__add_new__" className="text-blue-600">
                           + Add new algorithm...
                         </SelectItem>
