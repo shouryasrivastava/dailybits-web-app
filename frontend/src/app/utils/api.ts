@@ -205,3 +205,112 @@ export function apiUserToFrontend(u: ApiUser): AppUser {
     isAdmin: u.isAdmin,
   };
 }
+
+// ============================================================
+// Chat / AI Study Plan Generation
+// ============================================================
+
+export interface StudyPlanProblem {
+  problem_id: number;
+  problem_title: string;
+  difficulty_level: string;
+  algorithms: string[];
+  estimate_time: number;
+}
+
+export interface GeneratedPlan {
+  plan_id: number;
+  plan_name: string;
+  problems: StudyPlanProblem[];
+  ai_message: string;
+  total_time: number;
+}
+
+export function generateStudyPlan(accountNumber: number, message: string): Promise<GeneratedPlan> {
+  return apiFetch("/chat/generate-plan/", {
+    method: "POST",
+    body: JSON.stringify({ account_number: accountNumber, message }),
+  });
+}
+
+export function acceptStudyPlan(accountNumber: number, planId: number) {
+  return apiFetch<{ success: boolean; plan_id: number }>("/chat/accept-plan/", {
+    method: "POST",
+    body: JSON.stringify({ account_number: accountNumber, plan_id: planId }),
+  });
+}
+
+export interface ChatHistoryItem {
+  query_id: number;
+  user_message: string;
+  ai_response: string;
+  created_at: string;
+}
+
+export function fetchChatHistory(accountNumber: number): Promise<ChatHistoryItem[]> {
+  return apiFetch(`/chat/history/${accountNumber}/`);
+}
+
+// ============================================================
+// Progress Tracking
+// ============================================================
+
+export interface UserProgressData {
+  problems_solved: number;
+  total_practice_days: number;
+  last_practice_date: string | null;
+  todo_count: number;
+  easy_solved: number;
+  medium_solved: number;
+  hard_solved: number;
+  easy_total: number;
+  medium_total: number;
+  hard_total: number;
+}
+
+export function fetchUserProgress(accountNumber: number): Promise<UserProgressData> {
+  return apiFetch(`/progress/${accountNumber}/`);
+}
+
+export interface RecentActivityItem {
+  problem_id: number;
+  problem_title: string;
+  difficulty_level: string;
+  submitted_at: string;
+  is_correct: boolean;
+}
+
+export function fetchRecentActivity(accountNumber: number): Promise<RecentActivityItem[]> {
+  return apiFetch(`/progress/${accountNumber}/recent/`);
+}
+
+export interface AlgorithmProgressItem {
+  algorithm_name: string;
+  problems_solved: number;
+}
+
+export function fetchAlgorithmProgress(accountNumber: number): Promise<AlgorithmProgressItem[]> {
+  return apiFetch(`/progress/${accountNumber}/algorithms/`);
+}
+
+// ============================================================
+// Study Plans
+// ============================================================
+
+export interface StudyPlanListItem {
+  plan_id: number;
+  plan_name: string;
+  time_available: number;
+  created_at: string;
+  is_accepted: boolean;
+  problems: {
+    problem_id: number;
+    problem_title: string;
+    difficulty_level: string;
+    estimate_time_assigned: number;
+  }[];
+}
+
+export function fetchStudyPlans(accountNumber: number): Promise<StudyPlanListItem[]> {
+  return apiFetch(`/study-plans/${accountNumber}/`);
+}

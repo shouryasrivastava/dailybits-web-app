@@ -17,9 +17,16 @@ db.sqlite3
 
 # Node
 node_modules/
+<<<<<<< feature/supabase-db-config
 
 # OS
 .DS_Store
 
 # Logs
 *.log
+=======
+dist/
+__pycache__/
+*.pyc
+backend/venv/
+>>>>>>> main

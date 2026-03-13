@@ -1,18 +1,72 @@
 import { useState } from "react";
-import { Send, Sparkles, CheckCircle } from "lucide-react";
+import { Send, Sparkles } from "lucide-react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { ScrollArea } from "./ui/scroll-area";
-import { getProblems, addTodoItem } from "../utils/storage";
+import { Badge } from "./ui/badge";
+import { addTodoItem, getProblems } from "../utils/storage";
+import {
+  generateStudyPlan as apiGenerateStudyPlan,
+  acceptStudyPlan as apiAcceptStudyPlan,
+  type GeneratedPlan,
+  type StudyPlanProblem,
+} from "../utils/api";
 import { toast } from "sonner";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  plan?: GeneratedPlan;
 }
 
 interface StudyPlanChatProps {
   onPlanAccepted: () => void;
+}
+
+const ACCOUNT_NUMBER = 1;
+
+function getDifficultyColor(level: string) {
+  switch (level) {
+    case "Easy":
+      return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    case "Medium":
+      return "bg-amber-100 text-amber-700 border-amber-200";
+    case "Hard":
+      return "bg-rose-100 text-rose-700 border-rose-200";
+    default:
+      return "bg-neutral-100 text-neutral-700 border-neutral-200";
+  }
+}
+
+function localFallbackPlan(userMessage: string): GeneratedPlan {
+  const problems = getProblems();
+  const lower = userMessage.toLowerCase();
+  let selected = problems.slice(0, 5);
+
+  if (lower.includes("easy") || lower.includes("beginner")) {
+    selected = problems.filter((p) => p.difficulty === "Easy").slice(0, 5);
+  } else if (lower.includes("hard") || lower.includes("advanced")) {
+    selected = problems.filter((p) => p.difficulty === "Hard").slice(0, 3);
+  } else if (lower.includes("medium")) {
+    selected = problems.filter((p) => p.difficulty === "Medium").slice(0, 5);
+  }
+
+  if (selected.length === 0) selected = problems.slice(0, 5);
+
+  return {
+    plan_id: -1,
+    plan_name: "Study Plan",
+    total_time: selected.length * 20,
+    ai_message:
+      "Here's a study plan based on your request (generated locally — backend unavailable).",
+    problems: selected.map((p) => ({
+      problem_id: Number(p.id),
+      problem_title: p.title,
+      difficulty_level: p.difficulty,
+      algorithms: Array.isArray(p.algorithm) ? p.algorithm : [p.algorithm],
+      estimate_time: 20,
+    })),
+  };
 }
 
 export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
@@ -25,112 +79,60 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
   ]);
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [currentPlan, setCurrentPlan] = useState<string[] | null>(null);
-  const problems = getProblems();
+  const [currentPlan, setCurrentPlan] = useState<GeneratedPlan | null>(null);
+  const [isAccepting, setIsAccepting] = useState(false);
 
-  const generateStudyPlan = (userMessage: string): string[] => {
-    // Mock LLM response based on user input
-    const lowerMessage = userMessage.toLowerCase();
+  const handleSend = async () => {
+    if (!input.trim() || isGenerating) return;
 
-    let selectedProblems: string[] = [];
-
-    if (lowerMessage.includes("beginner") || lowerMessage.includes("easy")) {
-      selectedProblems = problems
-        .filter((p) => p.difficulty === "Easy")
-        .slice(0, 5)
-        .map((p) => p.id);
-    } else if (
-      lowerMessage.includes("advanced") ||
-      lowerMessage.includes("hard")
-    ) {
-      selectedProblems = problems
-        .filter((p) => p.difficulty === "Hard")
-        .concat(problems.filter((p) => p.difficulty === "Medium").slice(0, 2))
-        .slice(0, 5)
-        .map((p) => p.id);
-    } else if (lowerMessage.includes("array")) {
-      selectedProblems = problems
-        .filter((p) => p.algorithm === "Array")
-        .slice(0, 5)
-        .map((p) => p.id);
-    } else if (lowerMessage.includes("linked list")) {
-      selectedProblems = problems
-        .filter((p) => p.algorithm === "Linked List")
-        .slice(0, 5)
-        .map((p) => p.id);
-    } else if (
-      lowerMessage.includes("dynamic programming") ||
-      lowerMessage.includes("dp")
-    ) {
-      selectedProblems = problems
-        .filter((p) => p.algorithm === "Dynamic Programming")
-        .concat(problems.filter((p) => p.difficulty === "Medium").slice(0, 3))
-        .slice(0, 5)
-        .map((p) => p.id);
-    } else {
-      // Default: mixed difficulty
-      selectedProblems = [
-        ...problems.filter((p) => p.difficulty === "Easy").slice(0, 2),
-        ...problems.filter((p) => p.difficulty === "Medium").slice(0, 2),
-        ...problems.filter((p) => p.difficulty === "Hard").slice(0, 1),
-      ].map((p) => p.id);
-    }
-
-    return selectedProblems;
-  };
-
-  const formatStudyPlan = (problemIds: string[]): string => {
-    const planProblems = problemIds
-      .map((id) => problems.find((p) => p.id === id))
-      .filter((p) => p !== undefined);
-
-    let response =
-      "Based on your request, here's a personalized study plan:\n\n";
-
-    planProblems.forEach((problem, idx) => {
-      response += `${idx + 1}. **${problem.title}** (${problem.difficulty}) - ${problem.algorithm}\n`;
-    });
-
-    response +=
-      "\nThis plan covers a good mix of concepts to strengthen your skills. Would you like to add these to your todo list?";
-
-    return response;
-  };
-
-  const handleSend = () => {
-    if (!input.trim()) return;
-
-    const userMessage: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
+    const userMessage = input.trim();
+    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setInput("");
     setIsGenerating(true);
 
-    // Simulate API delay
-    setTimeout(() => {
-      const planIds = generateStudyPlan(input);
-      const response = formatStudyPlan(planIds);
+    let plan: GeneratedPlan;
+    try {
+      plan = await apiGenerateStudyPlan(ACCOUNT_NUMBER, userMessage);
+    } catch {
+      plan = localFallbackPlan(userMessage);
+    }
 
-      setCurrentPlan(planIds);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: response },
-      ]);
-      setIsGenerating(false);
-    }, 1500);
+    setCurrentPlan(plan);
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: plan.ai_message, plan },
+    ]);
+    setIsGenerating(false);
   };
 
-  const handleAcceptPlan = () => {
+  const handleAcceptPlan = async () => {
     if (!currentPlan) return;
+    setIsAccepting(true);
 
-    currentPlan.forEach((problemId) => {
-      addTodoItem({
-        problemId,
-        addedAt: new Date(),
-        priority: "medium",
-      });
-    });
+    try {
+      if (currentPlan.plan_id > 0) {
+        await apiAcceptStudyPlan(ACCOUNT_NUMBER, currentPlan.plan_id);
+      } else {
+        currentPlan.problems.forEach((p) =>
+          addTodoItem({
+            problemId: String(p.problem_id),
+            addedAt: new Date(),
+            priority: "medium",
+          }),
+        );
+      }
+      toast.success("Study plan added to your todo list!");
+    } catch {
+      currentPlan.problems.forEach((p) =>
+        addTodoItem({
+          problemId: String(p.problem_id),
+          addedAt: new Date(),
+          priority: "medium",
+        }),
+      );
+      toast.success("Study plan saved locally to your todo list!");
+    }
 
-    toast.success("Study plan added to your todo list!");
     setMessages((prev) => [
       ...prev,
       {
@@ -140,6 +142,7 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
       },
     ]);
     setCurrentPlan(null);
+    setIsAccepting(false);
     onPlanAccepted();
   };
 
@@ -160,7 +163,7 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
           </h2>
         </div>
         <p className="text-xs text-neutral-500 mt-1">
-          Get personalized problem recommendations
+          Get personalized problem recommendations powered by AI
         </p>
       </div>
 
@@ -181,6 +184,17 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
                 }`}
               >
                 <p className="text-sm whitespace-pre-line">{message.content}</p>
+
+                {message.plan && (
+                  <div className="mt-3 space-y-2">
+                    {message.plan.problems.map((p, i) => (
+                      <PlanProblemCard key={p.problem_id} problem={p} index={i} />
+                    ))}
+                    <p className="text-xs text-neutral-500 mt-2">
+                      Total estimated time: {message.plan.total_time} min
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -202,10 +216,11 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
         <div className="border-t border-neutral-200 p-4 bg-slate-50">
           <Button
             onClick={handleAcceptPlan}
+            disabled={isAccepting}
             className="w-full bg-slate-400 hover:bg-slate-600"
             size="sm"
           >
-            Accept Study Plan
+            {isAccepting ? "Adding to Todo..." : "Accept Study Plan"}
           </Button>
         </div>
       )}
@@ -230,10 +245,37 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
           </Button>
         </div>
         <p className="text-xs text-neutral-500 mt-2">
-          Try: "I want to practice easy array problems" or "Create a plan for
-          beginners"
+          Try: "I want to practice easy array problems" or "Help me with
+          dynamic programming for 2 hours"
         </p>
       </div>
+    </div>
+  );
+}
+
+function PlanProblemCard({
+  problem,
+  index,
+}: {
+  problem: StudyPlanProblem;
+  index: number;
+}) {
+  return (
+    <div className="flex items-center gap-3 p-2 bg-white rounded-md border border-neutral-200">
+      <span className="text-xs font-medium text-neutral-400 w-5">
+        {index + 1}.
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-neutral-900 truncate">
+          {problem.problem_title}
+        </p>
+        <p className="text-xs text-neutral-500">
+          ~{problem.estimate_time} min
+        </p>
+      </div>
+      <Badge variant="outline" className={getDifficultyColor(problem.difficulty_level)}>
+        {problem.difficulty_level}
+      </Badge>
     </div>
   );
 }
