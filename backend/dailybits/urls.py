@@ -19,7 +19,7 @@ from api.views.auth_views import signup, login, get_profile, update_profile, lis
 from api.views.problem_views import list_problems, get_single_problem, submit_problem, add_problem, delete_problem,update_problem, publish_problem
 from api.views.tag_views import list_tags, list_tag_problems
 from api.views.submission_views import list_submissions
-from api.views.chat_views import nl2sql # type: ignore
+# from api.views.chat_views import nl2sql # type: ignore
 from api.views.admin_views import (
     admin_user_stats, admin_problem_stats,
     admin_dashboard_stats, admin_list_problems, admin_get_problem,
@@ -77,5 +77,5 @@ urlpatterns = [
     path("admin/users/<int:account_number>/toggle-admin/", admin_toggle_user_admin),
     path("admin/algorithms/", admin_list_algorithms),
 
-    path("nl2sql/", nl2sql),
+    # path("nl2sql/", nl2sql),
 ]
