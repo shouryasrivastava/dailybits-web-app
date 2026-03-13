@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   USER_ROLE: 'pythonpractice_user_role',
   PROBLEMS: 'pythonpractice_problems',
   USERS: 'pythonpractice_users',
+  CURRENT_USER: 'pythonpractice_current_user',
 };
 
 const defaultUsers: AppUser[] = [
@@ -185,4 +186,17 @@ export function deleteUser(userId: string): void {
   const existing = getUsers();
   const filtered = existing.filter((u) => u.id !== userId);
   localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filtered));
+}
+
+// Current User
+export function getCurrentUser(): AppUser {
+  const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+  if (data) return JSON.parse(data);
+  // Default to first user (id='1') consistent with hardcoded ACCOUNT_NUMBER = 1
+  const users = getUsers();
+  return users[0];
+}
+
+export function setCurrentUser(user: AppUser): void {
+  localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
 }

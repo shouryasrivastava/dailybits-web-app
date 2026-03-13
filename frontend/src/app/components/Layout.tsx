@@ -8,23 +8,27 @@ import {
   ChevronRight,
   BarChart3,
   Shield,
+  User,
 } from "lucide-react";
 import { cn } from "./ui/utils";
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { getUserRole } from "../utils/storage";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import { getCurrentUser, getUserRole } from "../utils/storage";
 
 const navigation = [
   { name: "Problems", href: "/", icon: BookOpen },
   { name: "Todo List", href: "/todo", icon: ListTodo },
   { name: "Completed", href: "/completed", icon: CheckCircle2 },
   { name: "Progress", href: "/status", icon: BarChart3 },
+  { name: "My Profile", href: "/profile", icon: User },
 ];
 
 export function Layout() {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const userRole = getUserRole();
+  const currentUser = getCurrentUser();
 
   const fullNavigation = [
     ...navigation,
@@ -80,6 +84,31 @@ export function Layout() {
             );
           })}
         </nav>
+
+        {/* User profile widget */}
+        <div
+          className={cn(
+            "px-6 py-4 border-b border-neutral-200 flex items-center gap-3 border-t",
+            isCollapsed && "justify-center px-2",
+          )}
+        >
+          <Avatar className="size-10 flex-shrink-0">
+            <AvatarFallback className="bg-slate-600 text-white text-xs font-medium">
+              {(currentUser.firstName || "?")[0]}
+              {(currentUser.lastName || "")[0]}
+            </AvatarFallback>
+          </Avatar>
+          {!isCollapsed && (
+            <div className="min-w-0">
+              <p className="text-md font-medium text-neutral-900 truncate">
+                {currentUser.firstName} {currentUser.lastName}
+              </p>
+              <p className="text-xs text-neutral-500">
+                {currentUser.isAdmin ? "Admin" : "Student"}
+              </p>
+            </div>
+          )}
+        </div>
 
         <div className="p-4 border-t border-neutral-200">
           <Button

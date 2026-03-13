@@ -8,6 +8,7 @@ import { UserProgress } from "./components/UserProgress";
 import { Admin } from "./components/Admin";
 import { AdminProblemManager } from "./components/AdminProblemManager";
 import { AdminUserManager } from "./components/AdminUserManager";
+import { UserProfilePage } from "./components/UserProfilePage";
 
 export const router = createBrowserRouter([
   {
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
       { path: "admin", Component: Admin },
       { path: "admin/problems", Component: AdminProblemManager },
       { path: "admin/users", Component: AdminUserManager },
+      { path: "profile", Component: UserProfilePage },
     ],
   },
 ]);

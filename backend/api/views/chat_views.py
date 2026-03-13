@@ -2,7 +2,7 @@ import json
 import os
 import traceback
 
-from django.db import connection
+from django.db import connection, transaction
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -17,7 +17,7 @@ def _get_published_problems():
             FROM user_problem_library_view
             ORDER BY difficulty_level, problem_id
         """)
-        cols = [c.name for c in cur.description]
+        cols = [c[0] for c in cur.description]
         return [dict(zip(cols, row)) for row in cur.fetchall()]
 
 
@@ -136,26 +136,27 @@ def generate_plan(request):
 
     total_time = sum(pp.get("estimate_time", 0) for pp in plan_problems)
 
-    with connection.cursor() as cur:
-        cur.execute(
-            """INSERT INTO study_plan (account_number, plan_name, time_available, is_accepted)
-               VALUES (%s, %s, %s, FALSE) RETURNING plan_id""",
-            [account_number, plan_name, total_time],
-        )
-        plan_id = cur.fetchone()[0]
-
-        for pp in plan_problems:
+    with transaction.atomic():
+        with connection.cursor() as cur:
             cur.execute(
-                """INSERT INTO study_plan_problems (plan_id, problem_id, estimate_time_assigned)
-                   VALUES (%s, %s, %s)""",
-                [plan_id, pp["problem_id"], pp.get("estimate_time", 20)],
+                """INSERT INTO study_plan (account_number, plan_name, time_available, is_accepted)
+                   VALUES (%s, %s, %s, FALSE) RETURNING plan_id""",
+                [account_number, plan_name, total_time],
             )
+            plan_id = cur.fetchone()[0]
 
-        cur.execute(
-            """INSERT INTO chat_query (account_number, user_message, ai_response)
-               VALUES (%s, %s, %s)""",
-            [account_number, message, ai_message],
-        )
+            for pp in plan_problems:
+                cur.execute(
+                    """INSERT INTO study_plan_problems (plan_id, problem_id, estimate_time_assigned)
+                       VALUES (%s, %s, %s)""",
+                    [plan_id, pp["problem_id"], pp.get("estimate_time", 20)],
+                )
+
+            cur.execute(
+                """INSERT INTO chat_query (account_number, user_message, ai_response)
+                   VALUES (%s, %s, %s)""",
+                [account_number, message, ai_message],
+            )
 
     problem_details = []
     for pp in plan_problems:
@@ -211,7 +212,7 @@ def chat_history(request, account_number):
             ORDER BY created_at DESC
             LIMIT 50
         """, [account_number])
-        cols = [c.name for c in cur.description]
+        cols = [c[0] for c in cur.description]
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
 
     return Response(rows)

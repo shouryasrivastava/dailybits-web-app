@@ -1,15 +1,17 @@
-import json
 from django.db import connection
 from django.http import JsonResponse
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-import datetime
 from rest_framework.permissions import IsAuthenticated
 
 # List all problems
 @api_view(['GET'])
 def list_problems(request):
-    page = int(request.GET.get('page', 1)) # return page number, default 1
+    try:
+        page = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Invalid page parameter"}, status=400)
     page_size = 20
     offset = (page - 1) * page_size
 
@@ -50,13 +52,16 @@ def get_single_problem(request, pId):
 # Submit SQL answer
 @api_view(["POST"])
 def submit_problem(request, pid):
-    data = json.loads(request.body)
+    data = request.data
 
-    account_number = data["account_number"]
-    submission_text = data["submission"]
+    account_number = data.get("account_number")
+    submission_text = data.get("submission")
     is_correct = data.get("is_correct", False)
 
-    now = datetime.datetime.now()
+    if not account_number or not submission_text:
+        return JsonResponse({"error": "Missing required fields"}, status=400)
+
+    now = timezone.now()
 
     with connection.cursor() as cursor:
         cursor.execute("""
@@ -76,7 +81,7 @@ def add_problem(request):
     Required: tag_id, problem_title, problem_description
     Optional: solution_id, review_status
     """
-    data = json.loads(request.body)
+    data = request.data
 
     tag_id = data.get("tag_id")
     title = data.get("problem_title")
@@ -100,7 +105,7 @@ def add_problem(request):
             VALUES (%s, %s, %s, %s, %s)
         """, [tag_id, title, description, review_status, solution_id])
 
-        cursor.execute("SELECT LAST_INSERT_ID()")
+        cursor.execute("SELECT lastval()")
         new_id = cursor.fetchone()[0] # type: ignore
 
     return JsonResponse({"success": True, "problem_id": new_id})
@@ -125,7 +130,7 @@ def update_problem(request, pid):
     Update SQL problem fields from frontend
     Compatible with ProblemEditor + ProblemCreation
     """
-    data = json.loads(request.body)
+    data = request.data
 
     title = data.get("title")
     description = data.get("description")

@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from django.db import connection
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password, check_password
 
 @api_view(['POST'])
 def signup(request):
@@ -32,26 +33,27 @@ def signup(request):
                 if cursor.fetchone():
                     return Response({"success": False, "message": "Email already exists."}, status=400)
 
-        register_date = timezone.localdate()
+            register_date = timezone.localdate()
 
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO USER_PROFILE (Email, First_name, Last_name)
-                VALUES (%s, %s, %s)
-            """, [email, first_name, last_name])
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO USER_PROFILE (Email, First_name, Last_name)
+                    VALUES (%s, %s, %s)
+                """, [email, first_name, last_name])
 
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO ACCOUNT (Email, Register_date, Student_flag, Admin_flag)
-                VALUES (%s, %s, %s, %s)
-            """, [email, register_date, True, False])
-            account_number = cursor.lastrowid
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO ACCOUNT (Email, Register_date, Student_flag, Admin_flag)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING Account_number
+                """, [email, register_date, True, False])
+                account_number = cursor.fetchone()[0]
 
-        with connection.cursor() as cursor:
+            with connection.cursor() as cursor:
                 cursor.execute("""
                     INSERT INTO USER_AUTH (Email, Password)
                     VALUES (%s, %s)
-                """, [email, password])
+                """, [email, make_password(password)])
 
     except IntegrityError as e:
         # Surface a clear error instead of a generic 500
@@ -83,12 +85,11 @@ def login(request):
     # Step 1: verify credentials
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT Email FROM USER_AUTH 
-            WHERE Email=%s AND Password=%s
-        """, [email, password])
+            SELECT Password FROM USER_AUTH WHERE Email=%s
+        """, [email])
         user = cursor.fetchone()
 
-    if not user:
+    if not user or not check_password(password, user[0]):
         return Response({"success": False, "message": "Invalid email or password"})
 
     # Step 2: fetch profile + account info
@@ -105,6 +106,9 @@ def login(request):
             WHERE p.Email=%s
         """, [email])
         profile = cursor.fetchone()
+
+    if not profile:
+        return Response({"success": False, "message": "Account data not found"}, status=500)
 
     return Response({
         "success": True,
