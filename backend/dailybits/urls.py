@@ -79,6 +79,9 @@ urlpatterns = [
     path("admin/users/<int:account_number>/toggle-admin/", admin_toggle_user_admin),
     path("admin/algorithms/", admin_list_algorithms),
 
+<<<<<<< feature/supabase-db-config
+    # path("nl2sql/", nl2sql),
+=======
     # Chat / AI Study Plan
     path("chat/generate-plan/", generate_plan),
     path("chat/accept-plan/", accept_plan),
@@ -91,4 +94,5 @@ urlpatterns = [
 
     # Study Plans
     path("study-plans/<int:account_number>/", list_study_plans),
+>>>>>>> main
 ]
