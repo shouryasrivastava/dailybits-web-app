@@ -50,7 +50,7 @@ def get_recent_activity(request, account_number):
             ORDER BY submitted_at DESC
             LIMIT 5
         """, [account_number])
-        cols = [c.name for c in cur.description]
+        cols = [c[0] for c in cur.description]
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
 
     for r in rows:
@@ -69,7 +69,7 @@ def get_algorithm_progress(request, account_number):
             WHERE account_number = %s
             ORDER BY algorithm_name
         """, [account_number])
-        cols = [c.name for c in cur.description]
+        cols = [c[0] for c in cur.description]
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
 
     return Response(rows)

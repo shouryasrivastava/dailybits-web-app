@@ -314,3 +314,14 @@ export interface StudyPlanListItem {
 export function fetchStudyPlans(accountNumber: number): Promise<StudyPlanListItem[]> {
   return apiFetch(`/study-plans/${accountNumber}/`);
 }
+
+// ============================================================
+// User Profile
+// ============================================================
+
+export function updateUserProfile(accountNumber: number, firstName: string, lastName: string) {
+  return apiFetch<{ email: string; firstName: string; lastName: string; registerDate: string; isStudent: boolean; isAdmin: boolean }>(`/profile/${accountNumber}/update/`, {
+    method: "POST",
+    body: JSON.stringify({ firstName, lastName }),
+  });
+}

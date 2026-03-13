@@ -6,7 +6,6 @@ Update Solution_Description to handle Python code instead of SQL
 - add_solution: adds a new solution for a problem
 - update_solution: updates an existing solution for a problem
 """
-import json
 from django.db import connection
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
@@ -39,7 +38,7 @@ def get_solution(request, pId):
 
 @api_view(['POST'])
 def add_solution(request):
-    data = json.loads(request.body)
+    data = request.data
     pId = data.get('pId')
     sDescription = data.get('sDescription')
     if not pId or not sDescription:
@@ -73,7 +72,7 @@ def add_solution(request):
 
 @api_view(['PUT'])
 def update_solution(request, pid):
-    data = json.loads(request.body)
+    data = request.data
     sDescription = data.get('sDescription')
     if not sDescription:
         return Response({
