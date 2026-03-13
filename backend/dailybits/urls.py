@@ -19,7 +19,9 @@ from api.views.auth_views import signup, login, get_profile, update_profile, lis
 from api.views.problem_views import list_problems, get_single_problem, submit_problem, add_problem, delete_problem,update_problem, publish_problem
 from api.views.tag_views import list_tags, list_tag_problems
 from api.views.submission_views import list_submissions
-from api.views.chat_views import nl2sql # type: ignore
+from api.views.chat_views import generate_plan, accept_plan, chat_history
+from api.views.progress_views import get_user_progress, get_recent_activity, get_algorithm_progress
+from api.views.studyplan_views import list_study_plans
 from api.views.admin_views import (
     admin_user_stats, admin_problem_stats,
     admin_dashboard_stats, admin_list_problems, admin_get_problem,
@@ -77,5 +79,16 @@ urlpatterns = [
     path("admin/users/<int:account_number>/toggle-admin/", admin_toggle_user_admin),
     path("admin/algorithms/", admin_list_algorithms),
 
-    path("nl2sql/", nl2sql),
+    # Chat / AI Study Plan
+    path("chat/generate-plan/", generate_plan),
+    path("chat/accept-plan/", accept_plan),
+    path("chat/history/<int:account_number>/", chat_history),
+
+    # Progress
+    path("progress/<int:account_number>/", get_user_progress),
+    path("progress/<int:account_number>/recent/", get_recent_activity),
+    path("progress/<int:account_number>/algorithms/", get_algorithm_progress),
+
+    # Study Plans
+    path("study-plans/<int:account_number>/", list_study_plans),
 ]
