@@ -92,12 +92,14 @@ export function Layout() {
             isCollapsed && "justify-center px-2",
           )}
         >
-          <Avatar className="size-10 flex-shrink-0">
-            <AvatarFallback className="bg-slate-600 text-white text-xs font-medium">
-              {(currentUser.firstName || "?")[0]}
-              {(currentUser.lastName || "")[0]}
-            </AvatarFallback>
-          </Avatar>
+          <Link to="/profile" key="profile">
+            <Avatar className="size-10 flex-shrink-0">
+              <AvatarFallback className="bg-slate-600 text-white text-xs font-medium">
+                {(currentUser.firstName || "?")[0]}
+                {(currentUser.lastName || "")[0]}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
           {!isCollapsed && (
             <div className="min-w-0">
               <p className="text-md font-medium text-neutral-900 truncate">

@@ -32,10 +32,6 @@ export const problems: Problem[] = [
     :rtype: List[int]
     """
     pass`,
-    testCases: [
-      { input: "[2,7,11,15], 9", expectedOutput: "[0,1]" },
-      { input: "[3,2,4], 6", expectedOutput: "[1,2]" },
-    ],
   },
   {
     id: "2",
@@ -68,11 +64,6 @@ export const problems: Problem[] = [
     :rtype: bool
     """
     pass`,
-    testCases: [
-      { input: '"()"', expectedOutput: "true" },
-      { input: '"()[]{}"', expectedOutput: "true" },
-      { input: '"(]"', expectedOutput: "false" },
-    ],
   },
   {
     id: "3",
@@ -108,10 +99,6 @@ def merge_two_lists(list1, list2):
     :rtype: Optional[ListNode]
     """
     pass`,
-    testCases: [
-      { input: "[1,2,4], [1,3,4]", expectedOutput: "[1,1,2,3,4,4]" },
-      { input: "[], []", expectedOutput: "[]" },
-    ],
   },
   {
     id: "4",
@@ -145,10 +132,6 @@ def merge_two_lists(list1, list2):
     :rtype: int
     """
     pass`,
-    testCases: [
-      { input: "[-1,0,3,5,9,12], 9", expectedOutput: "4" },
-      { input: "[-1,0,3,5,9,12], 2", expectedOutput: "-1" },
-    ],
   },
   {
     id: "5",
@@ -184,11 +167,6 @@ def merge_two_lists(list1, list2):
     :rtype: int
     """
     pass`,
-    testCases: [
-      { input: '"abcabcbb"', expectedOutput: "3" },
-      { input: '"bbbbb"', expectedOutput: "1" },
-      { input: '"pwwkew"', expectedOutput: "3" },
-    ],
   },
   {
     id: "6",
@@ -225,10 +203,6 @@ def add_two_numbers(l1, l2):
     :rtype: ListNode
     """
     pass`,
-    testCases: [
-      { input: "[2,4,3], [5,6,4]", expectedOutput: "[7,0,8]" },
-      { input: "[0], [0]", expectedOutput: "[0]" },
-    ],
   },
   {
     id: "7",
@@ -256,10 +230,6 @@ def add_two_numbers(l1, l2):
     :rtype: int
     """
     pass`,
-    testCases: [
-      { input: "[1,8,6,2,5,4,8,3,7]", expectedOutput: "49" },
-      { input: "[1,1]", expectedOutput: "1" },
-    ],
   },
   {
     id: "8",
@@ -285,13 +255,6 @@ def add_two_numbers(l1, l2):
     :rtype: List[str]
     """
     pass`,
-    testCases: [
-      {
-        input: "3",
-        expectedOutput: '["((()))","(()())","(())()","()(())","()()()"]',
-      },
-      { input: "1", expectedOutput: '["()"]' },
-    ],
   },
   {
     id: "9",
@@ -328,10 +291,6 @@ def add_two_numbers(l1, l2):
     :rtype: float
     """
     pass`,
-    testCases: [
-      { input: "[1,3], [2]", expectedOutput: "2.00000" },
-      { input: "[1,2], [3,4]", expectedOutput: "2.50000" },
-    ],
   },
   {
     id: "10",
@@ -363,10 +322,6 @@ def add_two_numbers(l1, l2):
     :rtype: int
     """
     pass`,
-    testCases: [
-      { input: "[0,1,0,2,1,0,1,3,2,1,2,1]", expectedOutput: "6" },
-      { input: "[4,2,0,3,2,5]", expectedOutput: "9" },
-    ],
   },
   {
     id: "11",
@@ -400,10 +355,6 @@ def reverse_list(head):
     :rtype: ListNode
     """
     pass`,
-    testCases: [
-      { input: "[1,2,3,4,5]", expectedOutput: "[5,4,3,2,1]" },
-      { input: "[1,2]", expectedOutput: "[2,1]" },
-    ],
   },
   {
     id: "12",
@@ -430,9 +381,5 @@ def reverse_list(head):
     :rtype: int
     """
     pass`,
-    testCases: [
-      { input: "[-2,1,-3,4,-1,2,1,-5,4]", expectedOutput: "6" },
-      { input: "[1]", expectedOutput: "1" },
-    ],
   },
 ];

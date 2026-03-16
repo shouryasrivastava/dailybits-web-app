@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { TrendingUp, Award, Target, Calendar, BarChart3 } from "lucide-react";
-import { getProblems, getCompletedProblems, getTodoItems } from "../utils/storage";
+import {
+  getProblems,
+  getCompletedProblems,
+  getTodoItems,
+} from "../utils/storage";
 import {
   fetchUserProgress,
   fetchRecentActivity,
@@ -58,7 +62,10 @@ function getLocalFallbackProgress() {
       hard_total: totalByDiff("Hard"),
     } as UserProgressData,
     recentActivity: completed
-      .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
+      )
       .slice(0, 5)
       .map((c) => {
         const p = problems.find((pr) => pr.id === c.problemId);
@@ -88,9 +95,15 @@ function getLocalFallbackProgress() {
 }
 
 export function UserProgress() {
-  const [progressData, setProgressData] = useState<UserProgressData | null>(null);
-  const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
-  const [algorithmData, setAlgorithmData] = useState<AlgorithmProgressItem[]>([]);
+  const [progressData, setProgressData] = useState<UserProgressData | null>(
+    null,
+  );
+  const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>(
+    [],
+  );
+  const [algorithmData, setAlgorithmData] = useState<AlgorithmProgressItem[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -121,7 +134,9 @@ export function UserProgress() {
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading || !progressData) {
@@ -175,7 +190,7 @@ export function UserProgress() {
                 <Award className="w-8 h-8 opacity-80 text-yellow-400" />
               </div>
               <h3 className="text-3xl font-bold mb-1">{problems_solved}</h3>
-              <p className="text-violet-100">Problems Solved</p>
+              <p className="text-neutral-100">Problems Solved</p>
             </Card>
 
             <Card className="p-6 bg-white border border-neutral-200">
@@ -216,11 +231,28 @@ export function UserProgress() {
               Progress by Difficulty
             </h2>
             <div className="space-y-4">
-              {([
-                { label: "Easy", solved: easy_solved, total: easy_total, color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-                { label: "Medium", solved: medium_solved, total: medium_total, color: "bg-amber-100 text-amber-700 border-amber-200" },
-                { label: "Hard", solved: hard_solved, total: hard_total, color: "bg-rose-100 text-rose-700 border-rose-200" },
-              ] as const).map((d) => (
+              {(
+                [
+                  {
+                    label: "Easy",
+                    solved: easy_solved,
+                    total: easy_total,
+                    color: "bg-emerald-100 text-emerald-700 border-emerald-200",
+                  },
+                  {
+                    label: "Medium",
+                    solved: medium_solved,
+                    total: medium_total,
+                    color: "bg-amber-100 text-amber-700 border-amber-200",
+                  },
+                  {
+                    label: "Hard",
+                    solved: hard_solved,
+                    total: hard_total,
+                    color: "bg-rose-100 text-rose-700 border-rose-200",
+                  },
+                ] as const
+              ).map((d) => (
                 <div key={d.label}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
@@ -266,7 +298,7 @@ export function UserProgress() {
                       key={alg.algorithm_name}
                       className="p-4 bg-neutral-50 rounded-lg border border-neutral-200"
                     >
-                      <p className="text-2xl font-bold text-violet-600 mb-1">
+                      <p className="text-2xl font-bold text-neutral-600 mb-1">
                         {alg.problems_solved}
                       </p>
                       <p className="text-sm text-neutral-600">
@@ -300,7 +332,7 @@ export function UserProgress() {
                     <div className="flex-1">
                       <Link
                         to={`/problem/${item.problem_id}`}
-                        className="font-medium text-neutral-900 hover:text-violet-600 transition-colors"
+                        className="font-medium text-neutral-900 hover:text-neutral-600 transition-colors"
                       >
                         {item.problem_title}
                       </Link>

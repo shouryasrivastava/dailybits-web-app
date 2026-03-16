@@ -1,51 +1,70 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import Editor from "@monaco-editor/react";
-import { ChevronLeft, Play, CheckCircle, BookmarkPlus } from "lucide-react";
+import { ChevronLeft, Eye, CheckCircle, BookmarkPlus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Textarea } from "./ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { toast } from "sonner";
 import {
-  getProblems,
   getCompletedProblems,
   saveCompletedProblem,
   saveCodeCache,
   getCodeCache,
   clearCodeCache,
-  addTodoItem,
-  getTodoItems,
+  getAnswerNote,
+  saveAnswerNote,
 } from "../utils/storage";
+import {
+  fetchAdminProblem,
+  apiProblemDetailToFrontend,
+  fetchSolution,
+  addTodoApi,
+  submitProblemApi,
+} from "../utils/api";
+import { Problem } from "../types";
+
+const ACCOUNT_NUMBER = 1;
 
 export function ProblemDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const problems = getProblems();
-  const problem = problems.find((p) => p.id === id);
 
+  const [problem, setProblem] = useState<Problem | null>(null);
+  const [loading, setLoading] = useState(true);
   const [code, setCode] = useState("");
   const [notes, setNotes] = useState("");
   const [isCompleted, setIsCompleted] = useState(false);
-  const [output, setOutput] = useState("");
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [solution, setSolution] = useState<string | null>(null);
+  const [solutionLoading, setSolutionLoading] = useState(false);
+  const [answerNotes, setAnswerNotes] = useState("");
 
   useEffect(() => {
-    if (!problem) return;
+    if (!id) return;
+    fetchAdminProblem(Number(id))
+      .then((detail) => {
+        const p = apiProblemDetailToFrontend(detail);
+        setProblem(p);
 
-    const completedProblems = getCompletedProblems();
-    const completed = completedProblems.find((c) => c.problemId === problem.id);
-
-    if (completed) {
-      setCode(completed.code);
-      setNotes(completed.notes);
-      setIsCompleted(true);
-    } else {
-      const cache = getCodeCache();
-      setCode(cache[problem.id] || problem.starterCode);
-      setNotes("");
-      setIsCompleted(false);
-    }
-  }, [problem]);
+        const completedProblems = getCompletedProblems();
+        const completed = completedProblems.find((c) => c.problemId === p.id);
+        if (completed) {
+          setCode(completed.code);
+          setNotes(completed.notes);
+          setIsCompleted(true);
+        } else {
+          const cache = getCodeCache();
+          setCode(cache[p.id] || p.starterCode);
+          setNotes("");
+          setIsCompleted(false);
+        }
+      })
+      .catch(() => toast.error("Failed to load problem"))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   useEffect(() => {
     if (problem && code && code !== problem.starterCode) {
@@ -55,6 +74,14 @@ export function ProblemDetail() {
       return () => clearTimeout(timer);
     }
   }, [code, problem]);
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <p className="text-neutral-500">Loading...</p>
+      </div>
+    );
+  }
 
   if (!problem) {
     return (
@@ -69,15 +96,27 @@ export function ProblemDetail() {
     );
   }
 
-  const handleRunCode = () => {
-    setOutput(
-      "Running code...\n\nNote: This is a demo. In production, code would be executed in a sandboxed environment.\n\nYour code:\n\n" +
-        code,
-    );
-    toast.success("Code executed!");
+  const handleShowAnswer = async () => {
+    setAnswerNotes(getAnswerNote(problem.id));
+    setSolutionLoading(true);
+    setShowAnswer(true);
+    try {
+      const result = await fetchSolution(Number(problem.id));
+      setSolution(result.sDescription || null);
+    } catch {
+      setSolution(null);
+    } finally {
+      setSolutionLoading(false);
+    }
   };
 
-  const handleMarkComplete = () => {
+  const handleMarkComplete = async () => {
+    try {
+      await submitProblemApi(ACCOUNT_NUMBER, Number(problem.id), code, true);
+    } catch {
+      toast.error("Failed to submit problem");
+      return;
+    }
     saveCompletedProblem({
       problemId: problem.id,
       completedAt: new Date(),
@@ -89,18 +128,13 @@ export function ProblemDetail() {
     toast.success("Problem marked as completed!");
   };
 
-  const handleAddToTodo = () => {
-    const todoItems = getTodoItems();
-    if (todoItems.some((item) => item.problemId === problem.id)) {
-      toast.info("Already in todo list");
-      return;
+  const handleAddToTodo = async () => {
+    try {
+      await addTodoApi(ACCOUNT_NUMBER, Number(problem.id));
+      toast.success("Added to todo list!");
+    } catch {
+      toast.error("Failed to add to todo list");
     }
-    addTodoItem({
-      problemId: problem.id,
-      addedAt: new Date(),
-      priority: "medium",
-    });
-    toast.success("Added to todo list!");
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -151,10 +185,15 @@ export function ProblemDetail() {
             </Badge>
           </div>
 
-          <div className="mb-4">
-            <span className="text-sm px-3 py-1 text-neutral-700 rounded-full border-1">
-              {problem.algorithm}
-            </span>
+          <div className="mb-4 flex gap-2 flex-wrap">
+            {problem.algorithm.map((alg) => (
+              <span
+                key={alg}
+                className="text-sm px-3 py-1 text-neutral-700 rounded-full border-1"
+              >
+                {alg}
+              </span>
+            ))}
           </div>
 
           <div className="prose prose-sm max-w-none">
@@ -199,9 +238,9 @@ export function ProblemDetail() {
         <div className="border-b border-neutral-200 p-4 bg-white flex items-center justify-between">
           <span className="font-medium text-neutral-700">Python</span>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleRunCode}>
-              <Play className="w-4 h-4 mr-1" />
-              Run Code
+            <Button variant="outline" size="sm" onClick={handleShowAnswer}>
+              <Eye className="w-4 h-4 mr-1" />
+              Show Answer
             </Button>
             <Button
               size="sm"
@@ -219,7 +258,6 @@ export function ProblemDetail() {
           <TabsList className="w-full justify-start rounded-none border-b bg-white px-4">
             <TabsTrigger value="code">Code</TabsTrigger>
             <TabsTrigger value="notes">Notes</TabsTrigger>
-            <TabsTrigger value="output">Output</TabsTrigger>
           </TabsList>
 
           <TabsContent value="code" className="flex-1 m-0 overflow-hidden">
@@ -248,14 +286,69 @@ export function ProblemDetail() {
               className="h-full resize-none font-mono"
             />
           </TabsContent>
-
-          <TabsContent value="output" className="flex-1 m-0 p-4">
-            <div className="h-full bg-neutral-900 text-neutral-100 p-4 rounded-lg font-mono text-sm overflow-y-auto">
-              {output || "Run your code to see output here..."}
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
+
+      {/* Show Answer Modal */}
+      <Dialog open={showAnswer} onOpenChange={setShowAnswer}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Model Solution — {problem.title}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden flex flex-col gap-4 min-h-0">
+            {/* Read-only solution editor */}
+            <div className="flex-1 min-h-0 border rounded-md overflow-hidden">
+              {solutionLoading ? (
+                <div className="h-full flex items-center justify-center text-neutral-400 text-sm">
+                  Loading solution...
+                </div>
+              ) : solution ? (
+                <Editor
+                  height="100%"
+                  defaultLanguage="python"
+                  value={solution}
+                  theme="vs-light"
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    lineNumbers: "on",
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    tabSize: 4,
+                  }}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center text-neutral-400 text-sm">
+                  No solution available yet.
+                </div>
+              )}
+            </div>
+
+            {/* Notes section */}
+            <div className="flex flex-col gap-2 shrink-0">
+              <label className="text-sm font-medium text-neutral-700">My Notes</label>
+              <Textarea
+                value={answerNotes}
+                onChange={(e) => setAnswerNotes(e.target.value)}
+                placeholder="Write your notes about this solution..."
+                className="resize-none font-mono"
+                rows={4}
+              />
+              <Button
+                size="sm"
+                className="self-end"
+                onClick={() => {
+                  saveAnswerNote(problem.id, answerNotes);
+                  toast.success("Notes saved!");
+                }}
+              >
+                Save Notes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
