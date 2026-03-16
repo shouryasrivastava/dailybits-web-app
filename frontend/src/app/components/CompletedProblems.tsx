@@ -86,7 +86,7 @@ export function CompletedProblems() {
                       <div className="flex items-center gap-3 mb-2">
                         <Link
                           to={`/problem/${problem.id}`}
-                          className="font-medium text-neutral-900 hover:text-violet-600 transition-colors"
+                          className="font-medium text-neutral-900 hover:text-slate-600 transition-colors"
                         >
                           {problem.title}
                         </Link>
@@ -147,7 +147,7 @@ export function CompletedProblems() {
                     className="w-full"
                   >
                     <Edit3 className="w-3 h-3 mr-1" />
-                    View Solution
+                    View Submission
                   </Button>
                 </div>
               );
@@ -164,7 +164,7 @@ export function CompletedProblems() {
         <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
-              {selectedProblemData?.title} - Solution
+              {selectedProblemData?.title} - Submission
             </DialogTitle>
           </DialogHeader>
 

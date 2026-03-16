@@ -150,7 +150,7 @@ export function TodoList() {
                         <div className="flex items-center gap-3 mb-2">
                           <Link
                             to={`/problem/${item.problem_id}`}
-                            className="font-medium text-neutral-900 hover:text-violet-600 transition-colors"
+                            className="font-medium text-neutral-900 hover:text-slate-600 transition-colors"
                           >
                             {item.problem_title}
                           </Link>

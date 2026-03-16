@@ -2,7 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Trash2, ArrowLeft, Shield, ShieldOff, Loader2 } from "lucide-react";
 import { AppUser } from "../types";
-import { getUserRole } from "../utils/storage";
+import {
+  getCurrentUser,
+  getUserRole,
+  setCurrentUser,
+  setUserRole,
+  updateUser,
+} from "../utils/storage";
 import {
   fetchUsers,
   deleteUserApi,
@@ -83,6 +89,15 @@ export function AdminUserManager() {
     const newAdminStatus = !user.isAdmin;
     try {
       await toggleUserAdmin(Number(user.id), newAdminStatus);
+      const updatedUser = { ...user, isAdmin: newAdminStatus };
+      updateUser(updatedUser);
+
+      const currentUser = getCurrentUser();
+      if (currentUser.id === user.id) {
+        setCurrentUser({ ...currentUser, isAdmin: newAdminStatus });
+        setUserRole(newAdminStatus ? "administrator" : "user");
+      }
+
       toast.success(
         user.isAdmin
           ? `Revoked admin access from ${user.firstName}`
@@ -91,7 +106,7 @@ export function AdminUserManager() {
       // Update the local state to reflect the change immediately
       setUsers((prev) =>
         prev.map((u) =>
-          u.id === user.id ? { ...u, isAdmin: newAdminStatus } : u,
+          u.id === user.id ? updatedUser : u,
         ),
       );
     } catch (err: any) {

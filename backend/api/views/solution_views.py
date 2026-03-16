@@ -1,13 +1,5 @@
-"""
-TODO:
-Update Solution_Description to handle Python code instead of SQL
-
-- get_solution: retrieves the solution for a given problem ID
-- add_solution: adds a new solution for a problem
-- update_solution: updates an existing solution for a problem
-"""
+"""Solution endpoints backed by the current PostgreSQL schema."""
 from django.db import connection
-from django.http import JsonResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -15,7 +7,11 @@ from rest_framework.response import Response
 def get_solution(request, pId):
     try:
         with connection.cursor() as cursor:
-            cursor.execute("SELECT Solution_ID, Problem_ID, Solution_Description FROM SOLUTION WHERE Problem_ID = %s", [pId])
+            cursor.execute("""
+                SELECT solution_id, problem_id, solution_code
+                FROM solution
+                WHERE problem_id = %s
+            """, [pId])
             row = cursor.fetchone()
             if row:
                 return Response({
@@ -50,15 +46,22 @@ def add_solution(request):
     try:
         with connection.cursor() as cursor:
             # Check if solution exists
-            cursor.execute("SELECT Solution_ID FROM SOLUTION WHERE Problem_ID = %s", [pId])
+            cursor.execute("SELECT solution_id FROM solution WHERE problem_id = %s", [pId])
             existing = cursor.fetchone()
 
             if existing:
                 # Update existing
-                cursor.execute("UPDATE SOLUTION SET Solution_Description = %s WHERE Problem_ID = %s", [sDescription, pId])
+                cursor.execute("""
+                    UPDATE solution
+                    SET solution_code = %s
+                    WHERE problem_id = %s
+                """, [sDescription, pId])
             else:
                 # Insert new
-                cursor.execute("INSERT INTO SOLUTION (Problem_ID, Solution_Description) VALUES (%s, %s)", [pId, sDescription])
+                cursor.execute("""
+                    INSERT INTO solution (problem_id, solution_code)
+                    VALUES (%s, %s)
+                """, [pId, sDescription])
             
             return Response({
                 'success': True
@@ -82,7 +85,11 @@ def update_solution(request, pid):
 
     try:
         with connection.cursor() as cursor:
-            cursor.execute("UPDATE SOLUTION SET Solution_Description = %s WHERE Problem_ID = %s", [sDescription, pid])
+            cursor.execute("""
+                UPDATE solution
+                SET solution_code = %s
+                WHERE problem_id = %s
+            """, [sDescription, pid])
             return Response({
                 'success': True
             })

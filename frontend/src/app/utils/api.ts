@@ -124,6 +124,16 @@ export function deleteProblemApi(pid: number) {
   });
 }
 
+export function setProblemPublishedApi(pid: number, isPublished: boolean) {
+  return apiFetch<{ success: boolean; problemId: number; isPublished: boolean }>(
+    `/admin/problems/${pid}/publish/`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ isPublished }),
+    }
+  );
+}
+
 // ============================================================
 // Users
 // ============================================================
@@ -181,6 +191,7 @@ export function apiProblemListToFrontend(item: ApiProblemListItem): Problem {
     difficulty: item.difficulty_level as Difficulty,
     algorithm: item.algorithms || [],
     estimateTime: item.estimate_time_baseline ?? undefined,
+    isPublished: item.is_published,
     description: item.problem_description,
     examples: [],
     constraints: [],
@@ -196,6 +207,7 @@ export function apiProblemDetailToFrontend(item: ApiProblemDetail): Problem {
     difficulty: item.difficulty_level as Difficulty,
     algorithm: item.algorithms || [],
     estimateTime: item.estimate_time_baseline ?? undefined,
+    isPublished: item.is_published,
     description: item.problem_description,
     examples: (item.examples || []).map((e) => ({
       input: e.input,

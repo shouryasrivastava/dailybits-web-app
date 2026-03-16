@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router";
-import { Search, Plus, Settings } from "lucide-react";
+import { Search, Plus, Check, Settings } from "lucide-react";
 import { getUserRole } from "../utils/storage";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
@@ -214,7 +214,11 @@ export function ProblemList() {
                       disabled={todoIds.has(problem.id)}
                       className="ml-4"
                     >
-                      <Plus className="w-4 h-4 mr-1" />
+                      {todoIds.has(problem.id) ? (
+                        <Check className="w-4 h-4 mr-1" />
+                      ) : (
+                        <Plus className="w-4 h-4 mr-1" />
+                      )}
                       {todoIds.has(problem.id) ? "In Todo" : "Add to Todo"}
                     </Button>
                   </div>

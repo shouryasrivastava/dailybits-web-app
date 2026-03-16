@@ -16,7 +16,7 @@ Legacy endpoints (kept for backwards compatibility):
   GET    /admin/problem-stats/                    — per-problem performance stats
 """
 
-from django.db import connection, transaction
+from django.db import connection, transaction, DatabaseError
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -286,6 +286,30 @@ def admin_delete_problem(request, pid):
         return Response({"error": "Problem not found"}, status=404)
 
     return Response({"success": True, "deletedId": pid})
+
+
+@api_view(["PATCH"])
+def admin_set_problem_published(request, pid):
+    """Publish or unpublish a problem."""
+    is_published = request.data.get("isPublished")
+    if is_published is None:
+        return Response({"error": "Missing isPublished field"}, status=400)
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                UPDATE problem
+                SET is_published = %s
+                WHERE problem_id = %s
+            """, [is_published, pid])
+            updated = cursor.rowcount
+    except DatabaseError as exc:
+        return Response({"error": str(exc)}, status=400)
+
+    if updated == 0:
+        return Response({"error": "Problem not found"}, status=404)
+
+    return Response({"success": True, "problemId": pid, "isPublished": is_published})
 
 
 # ============================================================

@@ -291,9 +291,9 @@ export function ProblemDetail() {
 
       {/* Show Answer Modal */}
       <Dialog open={showAnswer} onOpenChange={setShowAnswer}>
-        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-5xl h-[80vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Model Solution — {problem.title}</DialogTitle>
+            <DialogTitle>Sample Solution — {problem.title}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-hidden flex flex-col gap-4 min-h-0">
             {/* Read-only solution editor */}

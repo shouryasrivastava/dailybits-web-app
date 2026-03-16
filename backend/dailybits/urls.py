@@ -25,7 +25,7 @@ from api.views.studyplan_views import list_study_plans
 from api.views.admin_views import (
     admin_user_stats, admin_problem_stats,
     admin_dashboard_stats, admin_list_problems, admin_get_problem,
-    admin_add_problem, admin_update_problem, admin_delete_problem,
+    admin_add_problem, admin_update_problem, admin_delete_problem, admin_set_problem_published,
     admin_toggle_user_admin, admin_list_algorithms,
 )
 from api.views.solution_views import get_solution, add_solution, update_solution
@@ -78,6 +78,7 @@ urlpatterns = [
     path("admin/problems/add/", admin_add_problem),
     path("admin/problems/<int:pid>/", admin_get_problem),
     path("admin/problems/<int:pid>/update/", admin_update_problem),
+    path("admin/problems/<int:pid>/publish/", admin_set_problem_published),
     path("admin/problems/<int:pid>/delete/", admin_delete_problem),
     path("admin/users/<int:account_number>/toggle-admin/", admin_toggle_user_admin),
     path("admin/algorithms/", admin_list_algorithms),

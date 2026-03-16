@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Plus, Pencil, Trash2, ArrowLeft, X, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeft, X, Loader2, Eye, EyeOff } from "lucide-react";
 import { Problem, Difficulty } from "../types";
 import { getUserRole } from "../utils/storage";
 import {
@@ -9,6 +9,7 @@ import {
   createProblem,
   updateProblemApi,
   deleteProblemApi,
+  setProblemPublishedApi,
   fetchAlgorithms,
   apiProblemListToFrontend,
   apiProblemDetailToFrontend,
@@ -230,6 +231,21 @@ export function AdminProblemManager() {
     }
   };
 
+  const handleTogglePublished = async (problem: Problem) => {
+    const nextPublishedState = !problem.isPublished;
+    try {
+      await setProblemPublishedApi(Number(problem.id), nextPublishedState);
+      setProblems((prev) =>
+        prev.map((p) =>
+          p.id === problem.id ? { ...p, isPublished: nextPublishedState } : p,
+        ),
+      );
+      toast.success(nextPublishedState ? "Problem published" : "Problem unpublished");
+    } catch (err: any) {
+      toast.error(`Publish update failed: ${err.message}`);
+    }
+  };
+
   /** Return Tailwind color classes for a difficulty badge */
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -323,6 +339,23 @@ export function AdminProblemManager() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTogglePublished(problem)}
+                      className={
+                        problem.isPublished
+                          ? "text-amber-700 hover:text-amber-800 hover:bg-amber-50"
+                          : "text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                      }
+                      title={problem.isPublished ? "Unpublish problem" : "Publish problem"}
+                    >
+                      {problem.isPublished ? (
+                        <EyeOff className="w-3 h-3" />
+                      ) : (
+                        <Eye className="w-3 h-3" />
+                      )}
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
