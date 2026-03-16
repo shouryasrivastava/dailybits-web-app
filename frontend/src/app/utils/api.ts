@@ -247,6 +247,16 @@ export function fetchSolution(pId: number): Promise<ApiSolution> {
   return apiFetch(`/solutions/${pId}/`);
 }
 
+export function saveSolution(
+  pId: number,
+  sDescription: string,
+): Promise<{ success: boolean }> {
+  return apiFetch("/solutions/add/", {
+    method: "POST",
+    body: JSON.stringify({ pId, sDescription }),
+  });
+}
+
 // ============================================================
 // Chat / AI Study Plan Generation
 // ============================================================

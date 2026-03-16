@@ -1,5 +1,5 @@
 """Solution endpoints backed by the current PostgreSQL schema."""
-from django.db import connection
+from django.db import connection, transaction
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -37,35 +37,53 @@ def add_solution(request):
     data = request.data
     pId = data.get('pId')
     sDescription = data.get('sDescription')
-    if not pId or not sDescription:
+    if not pId:
         return Response({
             'error': 'Missing required fields',
             'success': False
         }, status=400)
 
     try:
-        with connection.cursor() as cursor:
-            # Check if solution exists
-            cursor.execute("SELECT solution_id FROM solution WHERE problem_id = %s", [pId])
-            existing = cursor.fetchone()
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                # Check if solution exists
+                cursor.execute("SELECT solution_id FROM solution WHERE problem_id = %s", [pId])
+                existing = cursor.fetchone()
+                cleaned_description = (sDescription or "").strip()
 
-            if existing:
-                # Update existing
-                cursor.execute("""
-                    UPDATE solution
-                    SET solution_code = %s
-                    WHERE problem_id = %s
-                """, [sDescription, pId])
-            else:
-                # Insert new
-                cursor.execute("""
-                    INSERT INTO solution (problem_id, solution_code)
-                    VALUES (%s, %s)
-                """, [pId, sDescription])
-            
-            return Response({
-                'success': True
-            })
+                if not cleaned_description:
+                    if existing:
+                        cursor.execute("""
+                            DELETE FROM solution
+                            WHERE problem_id = %s
+                        """, [pId])
+                    cursor.execute("""
+                        UPDATE problem
+                        SET is_published = FALSE
+                        WHERE problem_id = %s
+                    """, [pId])
+                    return Response({
+                        'success': True,
+                        'isPublished': False
+                    })
+
+                if existing:
+                    # Update existing
+                    cursor.execute("""
+                        UPDATE solution
+                        SET solution_code = %s
+                        WHERE problem_id = %s
+                    """, [cleaned_description, pId])
+                else:
+                    # Insert new
+                    cursor.execute("""
+                        INSERT INTO solution (problem_id, solution_code)
+                        VALUES (%s, %s)
+                    """, [pId, cleaned_description])
+                
+                return Response({
+                    'success': True
+                })
     except Exception as e:
         return Response({
             'error': str(e),

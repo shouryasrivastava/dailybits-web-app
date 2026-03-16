@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
-import { Plus, Pencil, Trash2, ArrowLeft, X, Loader2, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeft, X, Loader2, Eye, EyeOff, FileText } from "lucide-react";
 import { Problem, Difficulty } from "../types";
 import { getUserRole } from "../utils/storage";
 import {
@@ -11,6 +11,8 @@ import {
   deleteProblemApi,
   setProblemPublishedApi,
   fetchAlgorithms,
+  fetchSolution,
+  saveSolution,
   apiProblemListToFrontend,
   apiProblemDetailToFrontend,
   ProblemPayload,
@@ -64,7 +66,7 @@ interface ProblemFormData {
   examples: { input: string; output: string; explanation?: string }[];
   constraints: string[];
   starterCode: string;
-  testCases: { input: string; expectedOutput: string }[];
+  solutionCode: string;
 }
 
 /** Default blank form used when adding a new problem or resetting the dialog */
@@ -77,7 +79,7 @@ const emptyForm: ProblemFormData = {
   examples: [{ input: "", output: "" }],
   constraints: [""],
   starterCode: "",
-  testCases: [{ input: "", expectedOutput: "" }],
+  solutionCode: "",
 };
 
 /** Hardcoded fallback used if the backend algorithm list fails to load */
@@ -105,6 +107,13 @@ export function AdminProblemManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
   const [form, setForm] = useState<ProblemFormData>(emptyForm);
+  const [editFocusSection, setEditFocusSection] = useState<"problem" | "solution">("problem");
+
+  // Preview dialog state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewProblem, setPreviewProblem] = useState<Problem | null>(null);
+  const [previewSolutionCode, setPreviewSolutionCode] = useState("");
 
   // Algorithm dropdown: DB-loaded list + session-added custom names
   const [dbAlgorithms, setDbAlgorithms] = useState<string[]>([]);
@@ -115,6 +124,8 @@ export function AdminProblemManager() {
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingProblemId, setDeletingProblemId] = useState<string | null>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const solutionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Redirect non-admin users back to the admin landing page
   if (userRole !== "administrator") {
@@ -146,31 +157,75 @@ export function AdminProblemManager() {
   const openAddDialog = () => {
     setEditingProblem(null);
     setForm(emptyForm);
+    setEditFocusSection("problem");
     setDialogOpen(true);
   };
 
-  /** Open the dialog in "edit" mode — fetches full problem detail from the backend */
-  const openEditDialog = async (problem: Problem) => {
+  const loadProblemEditorData = async (problemId: number) => {
+    const detail = await fetchAdminProblem(problemId);
+    const fullProblem = apiProblemDetailToFrontend(detail);
+
+    let solutionCode = "";
     try {
-      const detail = await fetchAdminProblem(Number(problem.id));
-      const fullProblem = apiProblemDetailToFrontend(detail);
+      const solution = await fetchSolution(problemId);
+      solutionCode = solution.sDescription || "";
+    } catch (err: any) {
+      if (!String(err.message).toLowerCase().includes("solution not found")) {
+        throw err;
+      }
+    }
+
+    return { fullProblem, solutionCode };
+  };
+
+  const buildFormFromProblem = (
+    fullProblem: Problem,
+    solutionCode: string,
+  ): ProblemFormData => ({
+    title: fullProblem.title,
+    difficulty: fullProblem.difficulty,
+    algorithm: fullProblem.algorithm[0] || "",
+    estimateTime: fullProblem.estimateTime?.toString() || "",
+    description: fullProblem.description,
+    examples: fullProblem.examples.length > 0
+      ? fullProblem.examples
+      : [{ input: "", output: "" }],
+    constraints: fullProblem.constraints.length > 0
+      ? fullProblem.constraints
+      : [""],
+    starterCode: fullProblem.starterCode,
+    solutionCode,
+  });
+
+  /** Open the preview dialog for a problem */
+  const openPreviewDialog = async (problem: Problem) => {
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    setPreviewProblem(null);
+    setPreviewSolutionCode("");
+    try {
+      const { fullProblem, solutionCode } = await loadProblemEditorData(Number(problem.id));
+      setPreviewProblem(fullProblem);
+      setPreviewSolutionCode(solutionCode);
+    } catch (err: any) {
+      toast.error(`Failed to load problem: ${err.message}`);
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  /** Open the dialog in "edit" mode after loading full problem + solution data */
+  const openEditDialog = async (
+    problem: Problem,
+    focusSection: "problem" | "solution" = "problem",
+  ) => {
+    try {
+      const { fullProblem, solutionCode } = await loadProblemEditorData(Number(problem.id));
       setEditingProblem(fullProblem);
-      setForm({
-        title: fullProblem.title,
-        difficulty: fullProblem.difficulty,
-        // Use the first algorithm for the single-select form field
-        algorithm: fullProblem.algorithm[0] || "",
-        estimateTime: fullProblem.estimateTime?.toString() || "",
-        description: fullProblem.description,
-        examples: fullProblem.examples.length > 0
-          ? fullProblem.examples
-          : [{ input: "", output: "" }],
-        constraints: fullProblem.constraints.length > 0
-          ? fullProblem.constraints
-          : [""],
-        starterCode: fullProblem.starterCode,
-        testCases: [{ input: "", expectedOutput: "" }],
-      });
+      setForm(buildFormFromProblem(fullProblem, solutionCode));
+      setEditFocusSection(focusSection);
+      setPreviewOpen(false);
       setDialogOpen(true);
     } catch (err: any) {
       toast.error(`Failed to load problem: ${err.message}`);
@@ -185,30 +240,65 @@ export function AdminProblemManager() {
 
   /** Validate the form and send a create/update request to the backend */
   const handleSave = async () => {
-    if (!form.title.trim() || !form.algorithm.trim()) {
+    const isSolutionOnlyEdit = Boolean(editingProblem) && editFocusSection === "solution";
+
+    if (!isSolutionOnlyEdit && (!form.title.trim() || !form.algorithm.trim())) {
       toast.error("Title and algorithm are required");
       return;
     }
 
-    // Build the payload, stripping empty rows from dynamic lists
-    const payload: ProblemPayload = {
-      title: form.title.trim(),
-      difficulty: form.difficulty,
-      description: form.description.trim(),
-      estimateTimeBaseline: form.estimateTime.trim() ? Number(form.estimateTime) : null,
-      starterCode: form.starterCode,
-      algorithms: [form.algorithm.trim()],
-      examples: form.examples.filter((e) => e.input.trim() || e.output.trim()),
-      constraints: form.constraints.filter((c) => c.trim()),
-    };
-
     try {
-      if (editingProblem) {
+      let problemId = editingProblem ? Number(editingProblem.id) : null;
+      let payload: ProblemPayload | null = null;
+
+      if (!isSolutionOnlyEdit) {
+        payload = {
+          title: form.title.trim(),
+          difficulty: form.difficulty,
+          description: form.description.trim(),
+          estimateTimeBaseline: form.estimateTime.trim() ? Number(form.estimateTime) : null,
+          starterCode: form.starterCode,
+          algorithms: [form.algorithm.trim()],
+          examples: form.examples.filter((e) => e.input.trim() || e.output.trim()),
+          constraints: form.constraints.filter((c) => c.trim()),
+        };
+      }
+
+      if (editingProblem && payload) {
         await updateProblemApi(Number(editingProblem.id), payload);
-        toast.success("Problem updated");
       } else {
-        await createProblem(payload);
-        toast.success("Problem added");
+        if (payload) {
+          const created = await createProblem(payload);
+          problemId = created.problemId;
+        }
+      }
+
+      if (problemId) {
+        await saveSolution(problemId, form.solutionCode);
+      }
+
+      toast.success(
+        isSolutionOnlyEdit
+          ? "Solution updated"
+          : editingProblem
+            ? "Problem updated"
+            : "Problem added",
+      );
+      if (previewProblem && editingProblem && previewProblem.id === editingProblem.id) {
+        if (payload) {
+          setPreviewProblem({
+            ...editingProblem,
+            title: payload.title,
+            difficulty: form.difficulty,
+            description: payload.description,
+            estimateTime: payload.estimateTimeBaseline ?? undefined,
+            starterCode: payload.starterCode,
+            algorithm: payload.algorithms,
+            examples: payload.examples,
+            constraints: payload.constraints,
+          });
+        }
+        setPreviewSolutionCode(form.solutionCode.trim());
       }
       setDialogOpen(false);
       await refreshProblems();
@@ -216,6 +306,19 @@ export function AdminProblemManager() {
       toast.error(`Save failed: ${err.message}`);
     }
   };
+
+  useEffect(() => {
+    if (!dialogOpen) return;
+
+      const focusTarget =
+      editFocusSection === "solution"
+        ? solutionTextareaRef.current
+        : titleInputRef.current;
+    focusTarget?.focus();
+    if (editFocusSection === "solution") {
+      solutionTextareaRef.current?.scrollIntoView({ block: "center" });
+    }
+  }, [dialogOpen, editFocusSection]);
 
   /** Send a delete request to the backend and refresh the list */
   const handleDelete = async () => {
@@ -359,10 +462,10 @@ export function AdminProblemManager() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => openEditDialog(problem)}
+                      onClick={() => openPreviewDialog(problem)}
                     >
-                      <Pencil className="w-3 h-3 mr-1" />
-                      Edit
+                      <FileText className="w-3 h-3 mr-1" />
+                      View
                     </Button>
                     <Button
                       variant="outline"
@@ -389,358 +492,484 @@ export function AdminProblemManager() {
         )}
       </div>
 
+      {/* Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {previewProblem ? previewProblem.title : "Problem Preview"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {previewLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
+            </div>
+          ) : previewProblem ? (
+            <div className="space-y-6 py-4">
+              <section className="rounded-xl border border-neutral-200 bg-neutral-50 p-5">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-neutral-900">
+                      Problem
+                    </h3>
+                    <p className="text-sm text-neutral-500">
+                      Description, examples, constraints, and starter code
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openEditDialog(previewProblem, "problem")}
+                  >
+                    <Pencil className="w-3 h-3 mr-1" />
+                    Edit
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm text-neutral-700">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-neutral-500">
+                      Algorithm
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {previewProblem.algorithm.map((algo) => (
+                        <span
+                          key={algo}
+                          className="rounded-md bg-white px-2 py-1 text-xs text-neutral-600 border border-neutral-200"
+                        >
+                          {algo}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-neutral-500">
+                        Difficulty
+                      </p>
+                      <p className="mt-2">{previewProblem.difficulty}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-neutral-500">
+                        Estimate Time
+                      </p>
+                      <p className="mt-2">
+                        {previewProblem.estimateTime
+                          ? `${previewProblem.estimateTime} min`
+                          : "Not set"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-5">
+                  <div>
+                    <p className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
+                      Description
+                    </p>
+                    <div className="whitespace-pre-wrap rounded-lg border border-neutral-200 bg-white p-4 text-sm text-neutral-700">
+                      {previewProblem.description || "No description added."}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
+                      Examples
+                    </p>
+                    <div className="space-y-3">
+                      {previewProblem.examples.length > 0 ? (
+                        previewProblem.examples.map((example, idx) => (
+                          <div
+                            key={`${example.input}-${idx}`}
+                            className="rounded-lg border border-neutral-200 bg-white p-4 text-sm text-neutral-700"
+                          >
+                            <p><span className="font-medium text-neutral-900">Input:</span> {example.input || "—"}</p>
+                            <p className="mt-1"><span className="font-medium text-neutral-900">Output:</span> {example.output || "—"}</p>
+                            {example.explanation && (
+                              <p className="mt-1"><span className="font-medium text-neutral-900">Explanation:</span> {example.explanation}</p>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-lg border border-dashed border-neutral-200 bg-white p-4 text-sm text-neutral-500">
+                          No examples added.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
+                      Constraints
+                    </p>
+                    {previewProblem.constraints.length > 0 ? (
+                      <ul className="list-disc space-y-1 pl-5 text-sm text-neutral-700">
+                        {previewProblem.constraints.map((constraint) => (
+                          <li key={constraint}>{constraint}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-neutral-200 bg-white p-4 text-sm text-neutral-500">
+                        No constraints added.
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
+                      Starter Code
+                    </p>
+                    <pre className="overflow-x-auto rounded-lg border border-neutral-200 bg-white p-4 text-sm text-neutral-700">
+                      <code>{previewProblem.starterCode || "No starter code added."}</code>
+                    </pre>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-neutral-200 bg-neutral-50 p-5">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-neutral-900">
+                      Solution
+                    </h3>
+                    <p className="text-sm text-neutral-500">
+                      Sample solution shown to users in the workspace
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openEditDialog(previewProblem, "solution")}
+                  >
+                    <Pencil className="w-3 h-3 mr-1" />
+                    Edit
+                  </Button>
+                </div>
+
+                <pre className="overflow-x-auto rounded-lg border border-neutral-200 bg-white p-4 text-sm text-neutral-700">
+                  <code>
+                    {previewSolutionCode || "No solution added yet."}
+                  </code>
+                </pre>
+              </section>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingProblem ? "Edit Problem" : "Add Problem"}
+              {editingProblem
+                ? editFocusSection === "solution"
+                  ? "Edit Solution"
+                  : "Edit Problem"
+                : "Add Problem"}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={form.title}
-                  onChange={(e) =>
-                    setForm({ ...form, title: e.target.value })
-                  }
-                  placeholder="e.g. Two Sum"
-                />
-              </div>
-              <div>
-                {/* Algorithm selector: dropdown by default, text input when "Add new" is chosen */}
-                <Label htmlFor="algorithm">Algorithm</Label>
-                {addingCustomAlgo ? (
-                  <div className="flex gap-1">
+            {(!editingProblem || editFocusSection === "problem") && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="title">Title</Label>
                     <Input
-                      value={customAlgoInput}
-                      onChange={(e) => setCustomAlgoInput(e.target.value)}
-                      placeholder="New algorithm..."
-                      className="h-9"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && customAlgoInput.trim()) {
-                          const newAlgo = customAlgoInput.trim();
-                          setCustomAlgorithms((prev) => [...prev, newAlgo]);
-                          setForm({ ...form, algorithm: newAlgo });
-                          setAddingCustomAlgo(false);
-                          setCustomAlgoInput("");
-                        } else if (e.key === "Escape") {
-                          setAddingCustomAlgo(false);
-                          setCustomAlgoInput("");
-                        }
-                      }}
+                      id="title"
+                      ref={titleInputRef}
+                      value={form.title}
+                      onChange={(e) =>
+                        setForm({ ...form, title: e.target.value })
+                      }
+                      placeholder="e.g. Two Sum"
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="algorithm">Algorithm</Label>
+                    {addingCustomAlgo ? (
+                      <div className="flex gap-1">
+                        <Input
+                          value={customAlgoInput}
+                          onChange={(e) => setCustomAlgoInput(e.target.value)}
+                          placeholder="New algorithm..."
+                          className="h-9"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && customAlgoInput.trim()) {
+                              const newAlgo = customAlgoInput.trim();
+                              setCustomAlgorithms((prev) => [...prev, newAlgo]);
+                              setForm({ ...form, algorithm: newAlgo });
+                              setAddingCustomAlgo(false);
+                              setCustomAlgoInput("");
+                            } else if (e.key === "Escape") {
+                              setAddingCustomAlgo(false);
+                              setCustomAlgoInput("");
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 px-2"
+                          onClick={() => {
+                            if (customAlgoInput.trim()) {
+                              const newAlgo = customAlgoInput.trim();
+                              setCustomAlgorithms((prev) => [...prev, newAlgo]);
+                              setForm({ ...form, algorithm: newAlgo });
+                            }
+                            setAddingCustomAlgo(false);
+                            setCustomAlgoInput("");
+                          }}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 px-2"
+                          onClick={() => {
+                            setAddingCustomAlgo(false);
+                            setCustomAlgoInput("");
+                          }}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Select
+                        value={form.algorithm}
+                        onValueChange={(value) => {
+                          if (value === "__add_new__") {
+                            setAddingCustomAlgo(true);
+                          } else {
+                            setForm({ ...form, algorithm: value });
+                          }
+                        }}
+                      >
+                        <SelectTrigger id="algorithm">
+                          <SelectValue placeholder="Select algorithm..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {algorithmOptions.map((algo) => (
+                            <SelectItem key={algo} value={algo}>
+                              {algo}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="__add_new__" className="text-blue-600">
+                            + Add new algorithm...
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="difficulty">Difficulty</Label>
+                    <Select
+                      value={form.difficulty}
+                      onValueChange={(value) =>
+                        setForm({ ...form, difficulty: value as Difficulty })
+                      }
+                    >
+                      <SelectTrigger id="difficulty">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Easy">Easy</SelectItem>
+                        <SelectItem value="Medium">Medium</SelectItem>
+                        <SelectItem value="Hard">Hard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="estimateTime">Estimated Time (minutes)</Label>
+                    <Input
+                      id="estimateTime"
+                      type="number"
+                      min="1"
+                      value={form.estimateTime}
+                      onChange={(e) =>
+                        setForm({ ...form, estimateTime: e.target.value })
+                      }
+                      placeholder="e.g. 30"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm({ ...form, description: e.target.value })
+                    }
+                    placeholder="Problem description..."
+                    className="min-h-[100px]"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Examples</Label>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-9 px-2"
-                      onClick={() => {
-                        if (customAlgoInput.trim()) {
-                          const newAlgo = customAlgoInput.trim();
-                          setCustomAlgorithms((prev) => [...prev, newAlgo]);
-                          setForm({ ...form, algorithm: newAlgo });
-                        }
-                        setAddingCustomAlgo(false);
-                        setCustomAlgoInput("");
-                      }}
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          examples: [...form.examples, { input: "", output: "" }],
+                        })
+                      }
                     >
-                      <Plus className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-9 px-2"
-                      onClick={() => {
-                        setAddingCustomAlgo(false);
-                        setCustomAlgoInput("");
-                      }}
-                    >
-                      <X className="w-3 h-3" />
+                      <Plus className="w-3 h-3 mr-1" />
+                      Add Example
                     </Button>
                   </div>
-                ) : (
-                  <Select
-                    value={form.algorithm}
-                    onValueChange={(value) => {
-                      if (value === "__add_new__") {
-                        setAddingCustomAlgo(true);
-                      } else {
-                        setForm({ ...form, algorithm: value });
-                      }
-                    }}
-                  >
-                    <SelectTrigger id="algorithm">
-                      <SelectValue placeholder="Select algorithm..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {algorithmOptions.map((algo) => (
-                        <SelectItem key={algo} value={algo}>
-                          {algo}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="__add_new__" className="text-blue-600">
-                        + Add new algorithm...
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            </div>
+                  {form.examples.map((example, idx) => (
+                    <div
+                      key={idx}
+                      className="flex gap-2 mb-2 items-start"
+                    >
+                      <div className="flex-1 space-y-2">
+                        <Input
+                          value={example.input}
+                          onChange={(e) => {
+                            const examples = [...form.examples];
+                            examples[idx] = { ...examples[idx], input: e.target.value };
+                            setForm({ ...form, examples });
+                          }}
+                          placeholder="Input"
+                        />
+                        <Input
+                          value={example.output}
+                          onChange={(e) => {
+                            const examples = [...form.examples];
+                            examples[idx] = { ...examples[idx], output: e.target.value };
+                            setForm({ ...form, examples });
+                          }}
+                          placeholder="Output"
+                        />
+                        <Input
+                          value={example.explanation || ""}
+                          onChange={(e) => {
+                            const examples = [...form.examples];
+                            examples[idx] = {
+                              ...examples[idx],
+                              explanation: e.target.value || undefined,
+                            };
+                            setForm({ ...form, examples });
+                          }}
+                          placeholder="Explanation (optional)"
+                        />
+                      </div>
+                      {form.examples.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const examples = form.examples.filter(
+                              (_, i) => i !== idx,
+                            );
+                            setForm({ ...form, examples });
+                          }}
+                          className="text-neutral-400 hover:text-rose-600 mt-1"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Constraints</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          constraints: [...form.constraints, ""],
+                        })
+                      }
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Add Constraint
+                    </Button>
+                  </div>
+                  {form.constraints.map((constraint, idx) => (
+                    <div key={idx} className="flex gap-2 mb-2">
+                      <Input
+                        value={constraint}
+                        onChange={(e) => {
+                          const constraints = [...form.constraints];
+                          constraints[idx] = e.target.value;
+                          setForm({ ...form, constraints });
+                        }}
+                        placeholder="e.g. 2 <= nums.length <= 10^4"
+                      />
+                      {form.constraints.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const constraints = form.constraints.filter(
+                              (_, i) => i !== idx,
+                            );
+                            setForm({ ...form, constraints });
+                          }}
+                          className="text-neutral-400 hover:text-rose-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <Label htmlFor="starterCode">Starter Code</Label>
+                  <Textarea
+                    id="starterCode"
+                    value={form.starterCode}
+                    onChange={(e) =>
+                      setForm({ ...form, starterCode: e.target.value })
+                    }
+                    placeholder="def solution():\n    pass"
+                    className="min-h-[120px] font-mono text-sm"
+                  />
+                </div>
+              </>
+            )}
+
+            {(!editingProblem || editFocusSection === "solution") && (
               <div>
-                <Label htmlFor="difficulty">Difficulty</Label>
-                <Select
-                  value={form.difficulty}
-                  onValueChange={(value) =>
-                    setForm({ ...form, difficulty: value as Difficulty })
-                  }
-                >
-                  <SelectTrigger id="difficulty">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Easy">Easy</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="Hard">Hard</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="estimateTime">Estimated Time (minutes)</Label>
-                <Input
-                  id="estimateTime"
-                  type="number"
-                  min="1"
-                  value={form.estimateTime}
+                <div className="mb-2">
+                  <Label htmlFor="solutionCode">Solution</Label>
+                  <p className="text-sm text-neutral-500">
+                    This is the sample solution shown from the problem workspace.
+                  </p>
+                </div>
+                <Textarea
+                  id="solutionCode"
+                  ref={solutionTextareaRef}
+                  value={form.solutionCode}
                   onChange={(e) =>
-                    setForm({ ...form, estimateTime: e.target.value })
+                    setForm({ ...form, solutionCode: e.target.value })
                   }
-                  placeholder="e.g. 30"
+                  placeholder="def solution(...):\n    ..."
+                  className="min-h-[180px] font-mono text-sm"
                 />
               </div>
-            </div>
+            )}
 
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
-                placeholder="Problem description..."
-                className="min-h-[100px]"
-              />
-            </div>
-
-            {/* Examples */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>Examples</Label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setForm({
-                      ...form,
-                      examples: [...form.examples, { input: "", output: "" }],
-                    })
-                  }
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  Add Example
-                </Button>
-              </div>
-              {form.examples.map((example, idx) => (
-                <div
-                  key={idx}
-                  className="flex gap-2 mb-2 items-start"
-                >
-                  <div className="flex-1 space-y-2">
-                    <Input
-                      value={example.input}
-                      onChange={(e) => {
-                        const examples = [...form.examples];
-                        examples[idx] = { ...examples[idx], input: e.target.value };
-                        setForm({ ...form, examples });
-                      }}
-                      placeholder="Input"
-                    />
-                    <Input
-                      value={example.output}
-                      onChange={(e) => {
-                        const examples = [...form.examples];
-                        examples[idx] = { ...examples[idx], output: e.target.value };
-                        setForm({ ...form, examples });
-                      }}
-                      placeholder="Output"
-                    />
-                    <Input
-                      value={example.explanation || ""}
-                      onChange={(e) => {
-                        const examples = [...form.examples];
-                        examples[idx] = {
-                          ...examples[idx],
-                          explanation: e.target.value || undefined,
-                        };
-                        setForm({ ...form, examples });
-                      }}
-                      placeholder="Explanation (optional)"
-                    />
-                  </div>
-                  {form.examples.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const examples = form.examples.filter(
-                          (_, i) => i !== idx,
-                        );
-                        setForm({ ...form, examples });
-                      }}
-                      className="text-neutral-400 hover:text-rose-600 mt-1"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Constraints */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>Constraints</Label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setForm({
-                      ...form,
-                      constraints: [...form.constraints, ""],
-                    })
-                  }
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  Add Constraint
-                </Button>
-              </div>
-              {form.constraints.map((constraint, idx) => (
-                <div key={idx} className="flex gap-2 mb-2">
-                  <Input
-                    value={constraint}
-                    onChange={(e) => {
-                      const constraints = [...form.constraints];
-                      constraints[idx] = e.target.value;
-                      setForm({ ...form, constraints });
-                    }}
-                    placeholder="e.g. 2 <= nums.length <= 10^4"
-                  />
-                  {form.constraints.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const constraints = form.constraints.filter(
-                          (_, i) => i !== idx,
-                        );
-                        setForm({ ...form, constraints });
-                      }}
-                      className="text-neutral-400 hover:text-rose-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div>
-              <Label htmlFor="starterCode">Starter Code</Label>
-              <Textarea
-                id="starterCode"
-                value={form.starterCode}
-                onChange={(e) =>
-                  setForm({ ...form, starterCode: e.target.value })
-                }
-                placeholder="def solution():\n    pass"
-                className="min-h-[120px] font-mono text-sm"
-              />
-            </div>
-
-            {/* Test Cases (frontend-only — not persisted to the database) */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>Test Cases</Label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setForm({
-                      ...form,
-                      testCases: [
-                        ...form.testCases,
-                        { input: "", expectedOutput: "" },
-                      ],
-                    })
-                  }
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  Add Test Case
-                </Button>
-              </div>
-              {form.testCases.map((testCase, idx) => (
-                <div key={idx} className="flex gap-2 mb-2">
-                  <Input
-                    value={testCase.input}
-                    onChange={(e) => {
-                      const testCases = [...form.testCases];
-                      testCases[idx] = {
-                        ...testCases[idx],
-                        input: e.target.value,
-                      };
-                      setForm({ ...form, testCases });
-                    }}
-                    placeholder="Input"
-                    className="flex-1"
-                  />
-                  <Input
-                    value={testCase.expectedOutput}
-                    onChange={(e) => {
-                      const testCases = [...form.testCases];
-                      testCases[idx] = {
-                        ...testCases[idx],
-                        expectedOutput: e.target.value,
-                      };
-                      setForm({ ...form, testCases });
-                    }}
-                    placeholder="Expected Output"
-                    className="flex-1"
-                  />
-                  {form.testCases.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const testCases = form.testCases.filter(
-                          (_, i) => i !== idx,
-                        );
-                        setForm({ ...form, testCases });
-                      }}
-                      className="text-neutral-400 hover:text-rose-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
 
           <DialogFooter>
