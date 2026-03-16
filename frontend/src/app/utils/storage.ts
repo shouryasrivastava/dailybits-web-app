@@ -4,12 +4,14 @@ import { problems as defaultProblems } from '../data/problems';
 const STORAGE_KEYS = {
   COMPLETED: 'pythonpractice_completed',
   TODO: 'pythonpractice_todo',
+  TODO_NOTES: 'pythonpractice_todo_notes',
   STUDY_PLANS: 'pythonpractice_study_plans',
   CODE_CACHE: 'pythonpractice_code_cache',
   USER_ROLE: 'pythonpractice_user_role',
   PROBLEMS: 'pythonpractice_problems',
   USERS: 'pythonpractice_users',
   CURRENT_USER: 'pythonpractice_current_user',
+  ANSWER_NOTES: 'pythonpractice_answer_notes',
 };
 
 const defaultUsers: AppUser[] = [
@@ -96,8 +98,12 @@ export function getStudyPlans(): StudyPlan[] {
   if (!data) return [];
   const parsed = JSON.parse(data);
   return parsed.map((plan: any) => ({
-    ...plan,
+    planId: plan.planId,
+    planName: plan.planName,
+    problems: plan.problems,
     createdAt: new Date(plan.createdAt),
+    timeAvailable: plan.timeAvailable,
+    isAccepted: plan.isAccepted,
   }));
 }
 
@@ -105,6 +111,34 @@ export function saveStudyPlan(plan: StudyPlan): void {
   const existing = getStudyPlans();
   existing.push(plan);
   localStorage.setItem(STORAGE_KEYS.STUDY_PLANS, JSON.stringify(existing));
+}
+
+// Answer Notes
+export function getAnswerNote(problemId: string): string {
+  const data = localStorage.getItem(STORAGE_KEYS.ANSWER_NOTES);
+  const notes: Record<string, string> = data ? JSON.parse(data) : {};
+  return notes[problemId] || "";
+}
+
+export function saveAnswerNote(problemId: string, note: string): void {
+  const data = localStorage.getItem(STORAGE_KEYS.ANSWER_NOTES);
+  const notes: Record<string, string> = data ? JSON.parse(data) : {};
+  notes[problemId] = note;
+  localStorage.setItem(STORAGE_KEYS.ANSWER_NOTES, JSON.stringify(notes));
+}
+
+// Todo Notes (local annotations, keyed by problem_id string)
+export function getTodoNote(problemId: string): string {
+  const data = localStorage.getItem(STORAGE_KEYS.TODO_NOTES);
+  const notes: Record<string, string> = data ? JSON.parse(data) : {};
+  return notes[problemId] || "";
+}
+
+export function saveTodoNote(problemId: string, note: string): void {
+  const data = localStorage.getItem(STORAGE_KEYS.TODO_NOTES);
+  const notes: Record<string, string> = data ? JSON.parse(data) : {};
+  notes[problemId] = note;
+  localStorage.setItem(STORAGE_KEYS.TODO_NOTES, JSON.stringify(notes));
 }
 
 // Code Cache (for unsaved work)

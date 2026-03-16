@@ -29,7 +29,7 @@ from api.views.admin_views import (
     admin_toggle_user_admin, admin_list_algorithms,
 )
 from api.views.solution_views import get_solution, add_solution, update_solution
-from api.views.todo_views import get_todo_list_view
+from api.views.todo_views import get_todo_list_view, get_todo_list_by_account, add_todo_item, remove_todo_item
 
 
 urlpatterns = [
@@ -55,6 +55,9 @@ urlpatterns = [
     path("problems/", list_problems),
 
     # Todo
+    path("todo/add/", add_todo_item),
+    path("todo/<int:account_number>/<int:pid>/", remove_todo_item),
+    path("todo/<int:account_number>/", get_todo_list_by_account),
     path("todo/", get_todo_list_view),
 
     # Solution

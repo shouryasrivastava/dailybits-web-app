@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router";
 import { Search, Plus, Settings } from "lucide-react";
-import { getProblems, getTodoItems, addTodoItem, getUserRole } from "../utils/storage";
+import { getUserRole } from "../utils/storage";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -13,17 +13,57 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import {
+  fetchProblems,
+  fetchTodoItemsApi,
+  addTodoApi,
+  apiProblemListToFrontend,
+} from "../utils/api";
+import { Problem } from "../types";
+
+const ACCOUNT_NUMBER = 1;
 
 export function ProblemList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState<string>("all");
   const [algorithmFilter, setAlgorithmFilter] = useState<string>("all");
-  const [todoItems, setTodoItems] = useState(getTodoItems());
-  const problems = getProblems();
+  const [problems, setProblems] = useState<Problem[]>([]);
+  const [todoIds, setTodoIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
   const userRole = getUserRole();
 
+  useEffect(() => {
+    async function loadData() {
+      // Fetch all pages of problems
+      try {
+        let page = 1;
+        const all: Problem[] = [];
+        while (true) {
+          const res = await fetchProblems(page);
+          all.push(...res.results.map(apiProblemListToFrontend));
+          if (res.results.length < res.page_size) break;
+          page++;
+        }
+        setProblems(all);
+      } catch {
+        toast.error("Failed to load problems");
+      } finally {
+        setLoading(false);
+      }
+
+      // Fetch current user's todo list (independent — won't block problems)
+      try {
+        const todoRes = await fetchTodoItemsApi(ACCOUNT_NUMBER);
+        setTodoIds(new Set(todoRes.results.map((t) => String(t.problem_id))));
+      } catch {
+        // todo list unavailable — buttons still work, just won't show "In Todo" state
+      }
+    }
+    loadData();
+  }, []);
+
   const categories = useMemo(() => {
-    const cats = new Set(problems.map((p) => p.algorithm));
+    const cats = new Set(problems.flatMap((p) => p.algorithm));
     return Array.from(cats).sort();
   }, [problems]);
 
@@ -31,29 +71,25 @@ export function ProblemList() {
     return problems.filter((problem) => {
       const matchesSearch =
         problem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        problem.algorithm.toLowerCase().includes(searchQuery.toLowerCase());
+        problem.algorithm.some((a) => a.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesDifficulty =
         difficultyFilter === "all" || problem.difficulty === difficultyFilter;
-      const matchesalgorithm =
-        algorithmFilter === "all" || problem.algorithm === algorithmFilter;
-      return matchesSearch && matchesDifficulty && matchesalgorithm;
+      const matchesAlgorithm =
+        algorithmFilter === "all" || problem.algorithm.includes(algorithmFilter);
+      return matchesSearch && matchesDifficulty && matchesAlgorithm;
     });
-  }, [searchQuery, difficultyFilter, algorithmFilter]);
+  }, [problems, searchQuery, difficultyFilter, algorithmFilter]);
 
-  const handleAddToTodo = (problemId: string, e: React.MouseEvent) => {
+  const handleAddToTodo = async (problemId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addTodoItem({
-      problemId,
-      addedAt: new Date(),
-      priority: "medium",
-    });
-    setTodoItems(getTodoItems());
-    toast.success("Added to todo list!");
-  };
-
-  const isInTodo = (problemId: string) => {
-    return todoItems.some((item) => item.problemId === problemId);
+    try {
+      await addTodoApi(ACCOUNT_NUMBER, Number(problemId));
+      setTodoIds((prev) => new Set([...prev, problemId]));
+      toast.success("Added to todo list!");
+    } catch {
+      toast.error("Failed to add to todo list");
+    }
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -130,58 +166,69 @@ export function ProblemList() {
 
       {/* Problem List */}
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="space-y-3">
-          {filteredProblems.map((problem) => (
-            <Link
-              key={problem.id}
-              to={`/problem/${problem.id}`}
-              className="block group"
-            >
-              <div className="border border-neutral-200 rounded-lg p-4 hover:border-slate-300 hover:shadow-sm transition-all bg-white">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-medium text-neutral-900 group-hover:text-slate-600 transition-colors">
-                        {problem.title}
-                      </h3>
-                      <Badge
-                        variant="outline"
-                        className={getDifficultyColor(problem.difficulty)}
-                      >
-                        {problem.difficulty}
-                      </Badge>
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-neutral-500">Loading problems...</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredProblems.map((problem) => (
+              <Link
+                key={problem.id}
+                to={`/problem/${problem.id}`}
+                className="block group"
+              >
+                <div className="border border-neutral-200 rounded-lg p-4 hover:border-slate-300 hover:shadow-sm transition-all bg-white">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-medium text-neutral-900 group-hover:text-slate-600 transition-colors">
+                          {problem.title}
+                        </h3>
+                        <Badge
+                          variant="outline"
+                          className={getDifficultyColor(problem.difficulty)}
+                        >
+                          {problem.difficulty}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-neutral-600 line-clamp-2 mb-2">
+                        {problem.description}
+                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {problem.algorithm.map((alg) => (
+                          <span
+                            key={alg}
+                            className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md"
+                          >
+                            {alg}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-sm text-neutral-600 line-clamp-2 mb-2">
-                      {problem.description}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md">
-                        {problem.algorithm}
-                      </span>
-                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => handleAddToTodo(problem.id, e)}
+                      disabled={todoIds.has(problem.id)}
+                      className="ml-4"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      {todoIds.has(problem.id) ? "In Todo" : "Add to Todo"}
+                    </Button>
                   </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => handleAddToTodo(problem.id, e)}
-                    disabled={isInTodo(problem.id)}
-                    className="ml-4"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    {isInTodo(problem.id) ? "In Todo" : "Add to Todo"}
-                  </Button>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))}
 
-          {filteredProblems.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-neutral-500">No problems found</p>
-            </div>
-          )}
-        </div>
+            {filteredProblems.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-neutral-500">No problems found</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -7,7 +7,7 @@
  * to convert backend responses into frontend types.
  */
 
-import { Problem, Difficulty, AppUser } from "../types";
+import { Problem, Difficulty, AppUser, TodoItem } from "../types";
 
 const API_BASE = "http://localhost:8000";
 
@@ -81,6 +81,16 @@ export interface ProblemPayload {
   algorithms: string[];
   examples: { input: string; output: string; explanation?: string }[];
   constraints: string[];
+}
+
+export interface ApiProblemListResponse {
+  page: number;
+  page_size: number;
+  results: ApiProblemListItem[];
+}
+
+export function fetchProblems(page = 1): Promise<ApiProblemListResponse> {
+  return apiFetch(`/problems/?page=${page}`);
 }
 
 export function fetchAdminProblems(): Promise<ApiProblemListItem[]> {
@@ -171,7 +181,6 @@ export function apiProblemListToFrontend(item: ApiProblemListItem): Problem {
     examples: [],
     constraints: [],
     starterCode: "",
-    testCases: [],
   };
 }
 
@@ -190,7 +199,6 @@ export function apiProblemDetailToFrontend(item: ApiProblemDetail): Problem {
     })),
     constraints: item.problem_constraints || [],
     starterCode: item.starter_code || "",
-    testCases: [], // no DB table for test cases
   };
 }
 
@@ -203,7 +211,23 @@ export function apiUserToFrontend(u: ApiUser): AppUser {
     lastName: u.lastName,
     registerDate: u.registerDate,
     isAdmin: u.isAdmin,
+    isStudent: u.isStudent,
   };
+}
+
+// ============================================================
+// Solutions
+// ============================================================
+
+export interface ApiSolution {
+  sId: number;
+  pId: number;
+  sDescription: string;
+  success: boolean;
+}
+
+export function fetchSolution(pId: number): Promise<ApiSolution> {
+  return apiFetch(`/solutions/${pId}/`);
 }
 
 // ============================================================
@@ -323,5 +347,61 @@ export function updateUserProfile(accountNumber: number, firstName: string, last
   return apiFetch<{ email: string; firstName: string; lastName: string; registerDate: string; isStudent: boolean; isAdmin: boolean }>(`/profile/${accountNumber}/update/`, {
     method: "POST",
     body: JSON.stringify({ firstName, lastName }),
+  });
+}
+
+// ============================================================
+// Todo
+// ============================================================
+
+export interface ApiTodoItem {
+  todo_id: number;
+  account_number: number;
+  problem_id: number;
+  problem_title: string;
+  problem_description: string;
+  difficulty_level: string;
+  added_at: string;
+  algorithms: string[];
+  is_completed: boolean;
+}
+
+export function fetchTodoItemsApi(accountNumber: number): Promise<{ results: ApiTodoItem[] }> {
+  return apiFetch(`/todo/${accountNumber}/`);
+}
+
+export function addTodoApi(accountNumber: number, problemId: number): Promise<{ success: boolean }> {
+  return apiFetch("/todo/add/", {
+    method: "POST",
+    body: JSON.stringify({ account_number: accountNumber, problem_id: problemId }),
+  });
+}
+
+export function removeTodoApi(accountNumber: number, problemId: number): Promise<{ success: boolean }> {
+  return apiFetch(`/todo/${accountNumber}/${problemId}/`, { method: "DELETE" });
+}
+
+export function apiTodoToFrontend(item: ApiTodoItem): TodoItem {
+  return {
+    problemId: String(item.problem_id),
+    addedAt: new Date(item.added_at),
+    todoId: item.todo_id,
+    source: "manual",
+  };
+}
+
+// ============================================================
+// Submission
+// ============================================================
+
+export function submitProblemApi(
+  accountNumber: number,
+  pid: number,
+  submission: string,
+  isCorrect: boolean,
+): Promise<{ success: boolean }> {
+  return apiFetch(`/problems/${pid}/submit/`, {
+    method: "POST",
+    body: JSON.stringify({ account_number: accountNumber, submission, is_correct: isCorrect }),
   });
 }

@@ -13,10 +13,6 @@ export interface Problem {
   }[];
   constraints: string[];
   starterCode: string;
-  testCases: {
-    input: string;
-    expectedOutput: string;
-  }[];
 }
 
 export interface CompletedProblem {
@@ -24,6 +20,7 @@ export interface CompletedProblem {
   completedAt: Date;
   code: string;
   notes: string;
+  isCorrect?: boolean;
 }
 
 export interface TodoItem {
@@ -31,13 +28,17 @@ export interface TodoItem {
   addedAt: Date;
   priority?: "low" | "medium" | "high";
   notes?: string;
+  todoId?: number;
+  source?: 'manual' | 'study_plan';
 }
 
 export interface StudyPlan {
-  id: string;
-  name: string;
+  planId: string;
+  planName: string;
   problems: string[];
   createdAt: Date;
+  timeAvailable?: number;
+  isAccepted?: boolean;
 }
 
 export interface UserRole {
@@ -51,4 +52,14 @@ export interface AppUser {
   lastName: string;
   registerDate: string;
   isAdmin: boolean;
+  isStudent?: boolean;
+}
+
+export interface Solution {
+  solutionId: number;
+  problemId: number;
+  solutionCode: string;
+  solutionExplanation?: string;
+  timeComplexity?: string;
+  spaceComplexity?: string;
 }

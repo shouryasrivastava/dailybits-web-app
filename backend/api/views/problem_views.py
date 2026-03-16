@@ -17,8 +17,19 @@ def list_problems(request):
 
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT *
-            FROM user_problem_library_view
+            SELECT
+                p.problem_id,
+                p.problem_title,
+                p.problem_description,
+                p.difficulty_level,
+                p.estimate_time_baseline,
+                COALESCE(array_agg(a.algorithm_name) FILTER (WHERE a.algorithm_name IS NOT NULL), '{}') AS algorithms
+            FROM problem p
+            LEFT JOIN problem_algorithm pa ON p.problem_id = pa.problem_id
+            LEFT JOIN algorithm a ON pa.algorithm_id = a.algorithm_id
+            WHERE p.is_published = TRUE
+            GROUP BY p.problem_id, p.problem_title, p.problem_description, p.difficulty_level, p.estimate_time_baseline
+            ORDER BY p.problem_id
             LIMIT %s OFFSET %s
         """, [page_size, offset])
         columns = [col[0] for col in cursor.description] # type: ignore

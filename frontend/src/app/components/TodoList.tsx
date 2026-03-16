@@ -2,24 +2,14 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Trash2, GripVertical, CheckCircle, StickyNote } from "lucide-react";
 import {
-  getProblems,
-  getTodoItems,
-  removeTodoItem,
-  updateTodoPriority,
-  updateTodoNotes,
   getCompletedProblems,
   saveCompletedProblem,
   getCodeCache,
+  getTodoNote,
+  saveTodoNote,
 } from "../utils/storage";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 import {
   Dialog,
   DialogContent,
@@ -30,76 +20,79 @@ import {
 import { Textarea } from "./ui/textarea";
 import { toast } from "sonner";
 import { StudyPlanChat } from "./StudyPlanChat";
+import {
+  fetchTodoItemsApi,
+  removeTodoApi,
+  submitProblemApi,
+  ApiTodoItem,
+} from "../utils/api";
+
+const ACCOUNT_NUMBER = 1;
 
 export function TodoList() {
-  const problems = getProblems();
-  const [todoItems, setTodoItems] = useState(getTodoItems());
+  const [todoItems, setTodoItems] = useState<ApiTodoItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [completedProblems, setCompletedProblems] = useState(
     getCompletedProblems(),
   );
-  const [selectedForNotes, setSelectedForNotes] = useState<string | null>(null);
+  const [selectedForNotes, setSelectedForNotes] = useState<number | null>(null);
   const [currentNotes, setCurrentNotes] = useState("");
 
-  const refreshTodos = () => {
-    setTodoItems(getTodoItems());
+  useEffect(() => {
+    fetchTodoItemsApi(ACCOUNT_NUMBER)
+      .then((res) => setTodoItems(res.results))
+      .catch(() => toast.error("Failed to load todo list"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const refreshCompleted = () => {
     setCompletedProblems(getCompletedProblems());
   };
 
-  const handleRemove = (problemId: string) => {
-    removeTodoItem(problemId);
-    refreshTodos();
-    toast.success("Removed from todo list");
-  };
-
-  const handlePriorityChange = (problemId: string, priority: string) => {
-    updateTodoPriority(problemId, priority as "low" | "medium" | "high");
-    refreshTodos();
-  };
-
-  const handleMarkComplete = (problemId: string) => {
-    const problem = problems.find((p) => p.id === problemId);
-    if (!problem) return;
-
-    const codeCache = getCodeCache();
-    const todoItem = todoItems.find((item) => item.problemId === problemId);
-
-    saveCompletedProblem({
-      problemId,
-      completedAt: new Date(),
-      code: codeCache[problemId] || problem.starterCode,
-      notes: todoItem?.notes || "",
-    });
-
-    removeTodoItem(problemId);
-    refreshTodos();
-    toast.success("Problem marked as completed!");
-  };
-
-  const handleOpenNotes = (problemId: string) => {
-    const todoItem = todoItems.find((item) => item.problemId === problemId);
-    setCurrentNotes(todoItem?.notes || "");
-    setSelectedForNotes(problemId);
-  };
-
-  const handleSaveNotes = () => {
-    if (selectedForNotes) {
-      updateTodoNotes(selectedForNotes, currentNotes);
-      refreshTodos();
-      setSelectedForNotes(null);
-      toast.success("Study notes saved!");
+  const handleRemove = async (item: ApiTodoItem) => {
+    try {
+      await removeTodoApi(ACCOUNT_NUMBER, item.problem_id);
+      setTodoItems((prev) => prev.filter((t) => t.todo_id !== item.todo_id));
+      toast.success("Removed from todo list");
+    } catch {
+      toast.error("Failed to remove from todo list");
     }
   };
 
-  const getPriorityColor = (priority?: string) => {
-    switch (priority) {
-      case "high":
-        return "bg-rose-100 text-rose-700 border-rose-200";
-      case "medium":
-        return "bg-amber-100 text-amber-700 border-amber-200";
-      case "low":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200";
-      default:
-        return "bg-neutral-100 text-neutral-700 border-neutral-200";
+  const handleMarkComplete = async (item: ApiTodoItem) => {
+    const codeCache = getCodeCache();
+    const cachedCode = codeCache[String(item.problem_id)] || "";
+    const note = getTodoNote(String(item.problem_id));
+
+    try {
+      await submitProblemApi(ACCOUNT_NUMBER, item.problem_id, cachedCode, true);
+      await removeTodoApi(ACCOUNT_NUMBER, item.problem_id);
+    } catch {
+      toast.error("Failed to mark problem as complete");
+      return;
+    }
+
+    saveCompletedProblem({
+      problemId: String(item.problem_id),
+      completedAt: new Date(),
+      code: cachedCode,
+      notes: note,
+    });
+    setTodoItems((prev) => prev.filter((t) => t.todo_id !== item.todo_id));
+    refreshCompleted();
+    toast.success("Problem marked as completed!");
+  };
+
+  const handleOpenNotes = (item: ApiTodoItem) => {
+    setCurrentNotes(getTodoNote(String(item.problem_id)));
+    setSelectedForNotes(item.problem_id);
+  };
+
+  const handleSaveNotes = () => {
+    if (selectedForNotes !== null) {
+      saveTodoNote(String(selectedForNotes), currentNotes);
+      setSelectedForNotes(null);
+      toast.success("Study notes saved!");
     }
   };
 
@@ -130,7 +123,11 @@ export function TodoList() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {todoItems.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-neutral-500">Loading...</p>
+            </div>
+          ) : todoItems.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-neutral-500 mb-4">Your todo list is empty</p>
               <Link to="/">
@@ -140,12 +137,10 @@ export function TodoList() {
           ) : (
             <div className="space-y-3">
               {todoItems.map((item) => {
-                const problem = problems.find((p) => p.id === item.problemId);
-                if (!problem) return null;
-
+                const note = getTodoNote(String(item.problem_id));
                 return (
                   <div
-                    key={item.problemId}
+                    key={item.todo_id}
                     className="border border-neutral-200 rounded-lg p-4 bg-white hover:shadow-sm transition-shadow"
                   >
                     <div className="flex items-start gap-4">
@@ -154,69 +149,49 @@ export function TodoList() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <Link
-                            to={`/problem/${problem.id}`}
+                            to={`/problem/${item.problem_id}`}
                             className="font-medium text-neutral-900 hover:text-violet-600 transition-colors"
                           >
-                            {problem.title}
+                            {item.problem_title}
                           </Link>
                           <Badge
                             variant="outline"
-                            className={getDifficultyColor(problem.difficulty)}
+                            className={getDifficultyColor(item.difficulty_level)}
                           >
-                            {problem.difficulty}
+                            {item.difficulty_level}
                           </Badge>
                         </div>
                         <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
-                          {problem.description}
+                          {item.problem_description}
                         </p>
-                        {item.notes && (
+                        {note && (
                           <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
                             <span className="font-medium">Notes: </span>
-                            {item.notes}
+                            {note}
                           </div>
                         )}
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md">
-                            {problem.algorithm}
-                          </span>
-                          <Select
-                            value={item.priority || "medium"}
-                            onValueChange={(value) =>
-                              handlePriorityChange(problem.id, value)
-                            }
-                          >
-                            <SelectTrigger className="w-32 h-7 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="low">Low Priority</SelectItem>
-                              <SelectItem value="medium">
-                                Medium Priority
-                              </SelectItem>
-                              <SelectItem value="high">
-                                High Priority
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Badge
-                            variant="outline"
-                            className={getPriorityColor(item.priority)}
-                          >
-                            {item.priority || "medium"}
-                          </Badge>
+                          {item.algorithms.map((alg) => (
+                            <span
+                              key={alg}
+                              className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md"
+                            >
+                              {alg}
+                            </span>
+                          ))}
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleOpenNotes(problem.id)}
+                            onClick={() => handleOpenNotes(item)}
                             className="h-7 text-xs gap-1"
                           >
                             <StickyNote className="w-3 h-3" />
-                            {item.notes ? "Edit Notes" : "Add Notes"}
+                            {note ? "Edit Notes" : "Add Notes"}
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleMarkComplete(problem.id)}
+                            onClick={() => handleMarkComplete(item)}
                             className="h-7 text-xs gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                           >
                             <CheckCircle className="w-3 h-3" />
@@ -228,7 +203,7 @@ export function TodoList() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemove(problem.id)}
+                        onClick={() => handleRemove(item)}
                         className="text-neutral-400 hover:text-rose-600"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -244,7 +219,13 @@ export function TodoList() {
 
       {/* Study Plan Chat */}
       <div className="w-96 border-l border-neutral-200">
-        <StudyPlanChat onPlanAccepted={refreshTodos} />
+        <StudyPlanChat
+          onPlanAccepted={() => {
+            fetchTodoItemsApi(ACCOUNT_NUMBER)
+              .then((res) => setTodoItems(res.results))
+              .catch(() => toast.error("Failed to refresh todo list"));
+          }}
+        />
       </div>
 
       {/* Notes Dialog */}
