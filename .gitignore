@@ -9,24 +9,21 @@ __pycache__/
 *.pyd
 
 # Virtual environments
+.venv/
 venv/
 env/
+backend/.venv/
+backend/venv/
 
 # Django
 db.sqlite3
 
 # Node
 node_modules/
-<<<<<<< feature/supabase-db-config
+dist/
 
 # OS
 .DS_Store
 
 # Logs
 *.log
-=======
-dist/
-__pycache__/
-*.pyc
-backend/venv/
->>>>>>> main
