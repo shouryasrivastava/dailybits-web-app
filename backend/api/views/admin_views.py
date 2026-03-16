@@ -62,7 +62,7 @@ def admin_list_problems(request):
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT problem_id, problem_title, problem_description,
-                   difficulty_level, is_published, algorithms
+                   difficulty_level, estimate_time_baseline, is_published, algorithms
             FROM admin_problem_library_view
             ORDER BY problem_id
         """)
@@ -82,7 +82,7 @@ def admin_get_problem(request, pid):
         # Core problem fields
         cursor.execute("""
             SELECT problem_id, problem_title, problem_description,
-                   difficulty_level, starter_code, is_published
+                   difficulty_level, estimate_time_baseline, starter_code, is_published
             FROM problem
             WHERE problem_id = %s
         """, [pid])
@@ -91,7 +91,7 @@ def admin_get_problem(request, pid):
     if not problem_row:
         return Response({"error": "Problem not found"}, status=404)
 
-    problem_id, title, description, difficulty, starter_code, is_published = problem_row
+    problem_id, title, description, difficulty, estimate_time_baseline, starter_code, is_published = problem_row
 
     with connection.cursor() as cursor:
         # Algorithm names for this problem
@@ -130,6 +130,7 @@ def admin_get_problem(request, pid):
         "problem_title": title,
         "problem_description": description,
         "difficulty_level": difficulty,
+        "estimate_time_baseline": estimate_time_baseline,
         "starter_code": starter_code or "",
         "is_published": is_published,
         "algorithms": algorithms,
@@ -148,6 +149,7 @@ def admin_add_problem(request):
     title = data.get("title", "").strip()
     difficulty = data.get("difficulty", "")
     description = data.get("description", "").strip()
+    estimate_time_baseline = data.get("estimateTimeBaseline")
     starter_code = data.get("starterCode", "")
     algorithms = data.get("algorithms", [])     # list of algorithm name strings
     examples = data.get("examples", [])         # [{input, output, explanation?}]
@@ -161,10 +163,10 @@ def admin_add_problem(request):
             # 1. Insert the problem row
             cursor.execute("""
                 INSERT INTO problem
-                    (difficulty_level, problem_title, problem_description, starter_code, is_published)
-                VALUES (%s, %s, %s, %s, FALSE)
+                    (difficulty_level, problem_title, problem_description, estimate_time_baseline, starter_code, is_published)
+                VALUES (%s, %s, %s, %s, %s, FALSE)
                 RETURNING problem_id
-            """, [difficulty, title, description, starter_code])
+            """, [difficulty, title, description, estimate_time_baseline, starter_code])
             problem_id = cursor.fetchone()[0]
 
             # 2. Insert examples (skip empty rows)
@@ -211,6 +213,7 @@ def admin_update_problem(request, pid):
     title = data.get("title", "").strip()
     difficulty = data.get("difficulty", "")
     description = data.get("description", "").strip()
+    estimate_time_baseline = data.get("estimateTimeBaseline")
     starter_code = data.get("starterCode", "")
     algorithms = data.get("algorithms", [])
     examples = data.get("examples", [])
@@ -225,9 +228,9 @@ def admin_update_problem(request, pid):
             cursor.execute("""
                 UPDATE problem
                 SET problem_title = %s, difficulty_level = %s,
-                    problem_description = %s, starter_code = %s
+                    problem_description = %s, estimate_time_baseline = %s, starter_code = %s
                 WHERE problem_id = %s
-            """, [title, difficulty, description, starter_code, pid])
+            """, [title, difficulty, description, estimate_time_baseline, starter_code, pid])
 
             if cursor.rowcount == 0:
                 return Response({"error": "Problem not found"}, status=404)

@@ -5,6 +5,7 @@ export interface Problem {
   title: string;
   difficulty: Difficulty;
   algorithm: string[];
+  estimateTime?: number;
   description: string;
   examples: {
     input: string;

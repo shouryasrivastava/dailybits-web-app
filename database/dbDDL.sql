@@ -266,16 +266,21 @@ SELECT
     p.problem_title,
     p.problem_description,
     p.difficulty_level,
+    p.estimate_time_baseline,
     p.is_published,
-    array_agg(a.algorithm_name) AS algorithms
+    COALESCE(
+        array_agg(a.algorithm_name) FILTER (WHERE a.algorithm_name IS NOT NULL),
+        ARRAY[]::VARCHAR(50)[]
+    ) AS algorithms
 FROM problem p
-JOIN problem_algorithm pa ON p.problem_id = pa.problem_id
-JOIN algorithm a          ON pa.algorithm_id = a.algorithm_id
+LEFT JOIN problem_algorithm pa ON p.problem_id = pa.problem_id
+LEFT JOIN algorithm a          ON pa.algorithm_id = a.algorithm_id
 GROUP BY
     p.problem_id,
     p.problem_title,
     p.problem_description,
     p.difficulty_level,
+    p.estimate_time_baseline,
     p.is_published;
 
 -- Todo List View

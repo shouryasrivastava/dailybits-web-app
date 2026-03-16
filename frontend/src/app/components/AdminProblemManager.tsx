@@ -58,6 +58,7 @@ interface ProblemFormData {
   title: string;
   difficulty: Difficulty;
   algorithm: string;
+  estimateTime: string;
   description: string;
   examples: { input: string; output: string; explanation?: string }[];
   constraints: string[];
@@ -70,6 +71,7 @@ const emptyForm: ProblemFormData = {
   title: "",
   difficulty: "Easy",
   algorithm: "",
+  estimateTime: "",
   description: "",
   examples: [{ input: "", output: "" }],
   constraints: [""],
@@ -157,6 +159,7 @@ export function AdminProblemManager() {
         difficulty: fullProblem.difficulty,
         // Use the first algorithm for the single-select form field
         algorithm: fullProblem.algorithm[0] || "",
+        estimateTime: fullProblem.estimateTime?.toString() || "",
         description: fullProblem.description,
         examples: fullProblem.examples.length > 0
           ? fullProblem.examples
@@ -191,6 +194,7 @@ export function AdminProblemManager() {
       title: form.title.trim(),
       difficulty: form.difficulty,
       description: form.description.trim(),
+      estimateTimeBaseline: form.estimateTime.trim() ? Number(form.estimateTime) : null,
       starterCode: form.starterCode,
       algorithms: [form.algorithm.trim()],
       examples: form.examples.filter((e) => e.input.trim() || e.output.trim()),
@@ -374,105 +378,118 @@ export function AdminProblemManager() {
                   placeholder="e.g. Two Sum"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="difficulty">Difficulty</Label>
-                  <Select
-                    value={form.difficulty}
-                    onValueChange={(value) =>
-                      setForm({ ...form, difficulty: value as Difficulty })
-                    }
-                  >
-                    <SelectTrigger id="difficulty">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Easy">Easy</SelectItem>
-                      <SelectItem value="Medium">Medium</SelectItem>
-                      <SelectItem value="Hard">Hard</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
                 {/* Algorithm selector: dropdown by default, text input when "Add new" is chosen */}
-                <div>
-                  <Label htmlFor="algorithm">Algorithm</Label>
-                  {addingCustomAlgo ? (
-                    <div className="flex gap-1">
-                      <Input
-                        value={customAlgoInput}
-                        onChange={(e) => setCustomAlgoInput(e.target.value)}
-                        placeholder="New algorithm..."
-                        className="h-9"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && customAlgoInput.trim()) {
-                            const newAlgo = customAlgoInput.trim();
-                            setCustomAlgorithms((prev) => [...prev, newAlgo]);
-                            setForm({ ...form, algorithm: newAlgo });
-                            setAddingCustomAlgo(false);
-                            setCustomAlgoInput("");
-                          } else if (e.key === "Escape") {
-                            setAddingCustomAlgo(false);
-                            setCustomAlgoInput("");
-                          }
-                        }}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 px-2"
-                        onClick={() => {
-                          if (customAlgoInput.trim()) {
-                            const newAlgo = customAlgoInput.trim();
-                            setCustomAlgorithms((prev) => [...prev, newAlgo]);
-                            setForm({ ...form, algorithm: newAlgo });
-                          }
+                <Label htmlFor="algorithm">Algorithm</Label>
+                {addingCustomAlgo ? (
+                  <div className="flex gap-1">
+                    <Input
+                      value={customAlgoInput}
+                      onChange={(e) => setCustomAlgoInput(e.target.value)}
+                      placeholder="New algorithm..."
+                      className="h-9"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && customAlgoInput.trim()) {
+                          const newAlgo = customAlgoInput.trim();
+                          setCustomAlgorithms((prev) => [...prev, newAlgo]);
+                          setForm({ ...form, algorithm: newAlgo });
                           setAddingCustomAlgo(false);
                           setCustomAlgoInput("");
-                        }}
-                      >
-                        <Plus className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 px-2"
-                        onClick={() => {
+                        } else if (e.key === "Escape") {
                           setAddingCustomAlgo(false);
                           setCustomAlgoInput("");
-                        }}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Select
-                      value={form.algorithm}
-                      onValueChange={(value) => {
-                        if (value === "__add_new__") {
-                          setAddingCustomAlgo(true);
-                        } else {
-                          setForm({ ...form, algorithm: value });
                         }
                       }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 px-2"
+                      onClick={() => {
+                        if (customAlgoInput.trim()) {
+                          const newAlgo = customAlgoInput.trim();
+                          setCustomAlgorithms((prev) => [...prev, newAlgo]);
+                          setForm({ ...form, algorithm: newAlgo });
+                        }
+                        setAddingCustomAlgo(false);
+                        setCustomAlgoInput("");
+                      }}
                     >
-                      <SelectTrigger id="algorithm">
-                        <SelectValue placeholder="Select algorithm..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {algorithmOptions.map((algo) => (
-                          <SelectItem key={algo} value={algo}>
-                            {algo}
-                          </SelectItem>
-                        ))}
-                        {/* Sentinel value that triggers the custom algorithm input */}
-                        <SelectItem value="__add_new__" className="text-blue-600">
-                          + Add new algorithm...
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 px-2"
+                      onClick={() => {
+                        setAddingCustomAlgo(false);
+                        setCustomAlgoInput("");
+                      }}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Select
+                    value={form.algorithm}
+                    onValueChange={(value) => {
+                      if (value === "__add_new__") {
+                        setAddingCustomAlgo(true);
+                      } else {
+                        setForm({ ...form, algorithm: value });
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="algorithm">
+                      <SelectValue placeholder="Select algorithm..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {algorithmOptions.map((algo) => (
+                        <SelectItem key={algo} value={algo}>
+                          {algo}
                         </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
+                      ))}
+                      <SelectItem value="__add_new__" className="text-blue-600">
+                        + Add new algorithm...
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="difficulty">Difficulty</Label>
+                <Select
+                  value={form.difficulty}
+                  onValueChange={(value) =>
+                    setForm({ ...form, difficulty: value as Difficulty })
+                  }
+                >
+                  <SelectTrigger id="difficulty">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Easy">Easy</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Hard">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="estimateTime">Estimated Time (minutes)</Label>
+                <Input
+                  id="estimateTime"
+                  type="number"
+                  min="1"
+                  value={form.estimateTime}
+                  onChange={(e) =>
+                    setForm({ ...form, estimateTime: e.target.value })
+                  }
+                  placeholder="e.g. 30"
+                />
               </div>
             </div>
 

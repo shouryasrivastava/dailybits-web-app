@@ -55,6 +55,7 @@ export interface ApiProblemListItem {
   problem_title: string;
   problem_description: string;
   difficulty_level: string;
+  estimate_time_baseline: number | null;
   is_published: boolean;
   algorithms: string[];
 }
@@ -65,6 +66,7 @@ export interface ApiProblemDetail {
   problem_title: string;
   problem_description: string;
   difficulty_level: string;
+  estimate_time_baseline: number | null;
   starter_code: string;
   is_published: boolean;
   algorithms: string[];
@@ -77,6 +79,7 @@ export interface ProblemPayload {
   title: string;
   difficulty: string;
   description: string;
+  estimateTimeBaseline: number | null;
   starterCode: string;
   algorithms: string[];
   examples: { input: string; output: string; explanation?: string }[];
@@ -167,6 +170,7 @@ export function apiProblemListToFrontend(item: ApiProblemListItem): Problem {
     title: item.problem_title,
     difficulty: item.difficulty_level as Difficulty,
     algorithm: item.algorithms || [],
+    estimateTime: item.estimate_time_baseline ?? undefined,
     description: item.problem_description,
     examples: [],
     constraints: [],
@@ -182,6 +186,7 @@ export function apiProblemDetailToFrontend(item: ApiProblemDetail): Problem {
     title: item.problem_title,
     difficulty: item.difficulty_level as Difficulty,
     algorithm: item.algorithms || [],
+    estimateTime: item.estimate_time_baseline ?? undefined,
     description: item.problem_description,
     examples: (item.examples || []).map((e) => ({
       input: e.input,
