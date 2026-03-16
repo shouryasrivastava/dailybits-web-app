@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import Editor from "@monaco-editor/react";
-import { ChevronLeft, Eye, CheckCircle, BookmarkPlus } from "lucide-react";
+import { ChevronLeft, Eye, CheckCircle, BookmarkPlus, GripHorizontal, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Textarea } from "./ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { toast } from "sonner";
 import {
   getCompletedProblems,
@@ -14,8 +13,6 @@ import {
   saveCodeCache,
   getCodeCache,
   clearCodeCache,
-  getAnswerNote,
-  saveAnswerNote,
 } from "../utils/storage";
 import {
   fetchAdminProblem,
@@ -40,7 +37,17 @@ export function ProblemDetail() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [solution, setSolution] = useState<string | null>(null);
   const [solutionLoading, setSolutionLoading] = useState(false);
-  const [answerNotes, setAnswerNotes] = useState("");
+  const [solutionPanelPosition, setSolutionPanelPosition] = useState({
+    x: 48,
+    y: 88,
+  });
+  const dragStateRef = useRef<{
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
+  const workspaceRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -75,6 +82,45 @@ export function ProblemDetail() {
     }
   }, [code, problem]);
 
+  useEffect(() => {
+    const handlePointerMove = (event: MouseEvent) => {
+      const dragState = dragStateRef.current;
+      if (!dragState) return;
+
+      const workspaceRect = workspaceRef.current?.getBoundingClientRect();
+      const panelWidth = Math.min(640, (workspaceRect?.width ?? 0) - 48);
+      const maxX = workspaceRect
+        ? Math.max(16, workspaceRect.width - panelWidth - 16)
+        : Number.POSITIVE_INFINITY;
+      const maxY = workspaceRect
+        ? Math.max(72, workspaceRect.height - 420 - 16)
+        : Number.POSITIVE_INFINITY;
+
+      setSolutionPanelPosition({
+        x: Math.min(
+          maxX,
+          Math.max(16, dragState.originX + event.clientX - dragState.startX),
+        ),
+        y: Math.min(
+          maxY,
+          Math.max(72, dragState.originY + event.clientY - dragState.startY),
+        ),
+      });
+    };
+
+    const handlePointerUp = () => {
+      dragStateRef.current = null;
+    };
+
+    window.addEventListener("mousemove", handlePointerMove);
+    window.addEventListener("mouseup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handlePointerMove);
+      window.removeEventListener("mouseup", handlePointerUp);
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -97,9 +143,18 @@ export function ProblemDetail() {
   }
 
   const handleShowAnswer = async () => {
-    setAnswerNotes(getAnswerNote(problem.id));
-    setSolutionLoading(true);
+    if (showAnswer) {
+      setShowAnswer(false);
+      return;
+    }
+
     setShowAnswer(true);
+
+    if (solution !== null) {
+      return;
+    }
+
+    setSolutionLoading(true);
     try {
       const result = await fetchSolution(Number(problem.id));
       setSolution(result.sDescription || null);
@@ -151,7 +206,7 @@ export function ProblemDetail() {
   };
 
   return (
-    <div className="h-full flex">
+    <div ref={workspaceRef} className="relative h-full flex">
       {/* Left Panel - Problem Description */}
       <div className="w-1/2 border-r border-neutral-200 flex flex-col bg-white">
         <div className="border-b border-neutral-200 p-4 flex items-center justify-between">
@@ -240,7 +295,7 @@ export function ProblemDetail() {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleShowAnswer}>
               <Eye className="w-4 h-4 mr-1" />
-              Show Answer
+              {showAnswer ? "Hide Answer" : "Show Answer"}
             </Button>
             <Button
               size="sm"
@@ -287,19 +342,45 @@ export function ProblemDetail() {
             />
           </TabsContent>
         </Tabs>
-      </div>
 
-      {/* Show Answer Modal */}
-      <Dialog open={showAnswer} onOpenChange={setShowAnswer}>
-        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-5xl h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Sample Solution — {problem.title}</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-hidden flex flex-col gap-4 min-h-0">
-            {/* Read-only solution editor */}
-            <div className="flex-1 min-h-0 border rounded-md overflow-hidden">
+      {showAnswer && (
+        <div
+          className="absolute z-20 flex h-[420px] w-[min(640px,calc(100%-3rem))] flex-col overflow-hidden rounded-xl border border-neutral-300 bg-white shadow-2xl"
+          style={{
+            left: `${solutionPanelPosition.x}px`,
+            top: `${solutionPanelPosition.y}px`,
+          }}
+        >
+            <div
+              className="flex cursor-move items-center justify-between border-b border-neutral-200 bg-neutral-50 px-4 py-3"
+              onMouseDown={(event) => {
+                dragStateRef.current = {
+                  startX: event.clientX,
+                  startY: event.clientY,
+                  originX: solutionPanelPosition.x,
+                  originY: solutionPanelPosition.y,
+                };
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <GripHorizontal className="h-4 w-4 text-neutral-400" />
+                <h3 className="font-semibold text-neutral-900">
+                  Sample Solution
+                </h3>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setShowAnswer(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="min-h-0 flex-1">
               {solutionLoading ? (
-                <div className="h-full flex items-center justify-center text-neutral-400 text-sm">
+                <div className="flex h-full items-center justify-center text-sm text-neutral-400">
                   Loading solution...
                 </div>
               ) : solution ? (
@@ -319,36 +400,15 @@ export function ProblemDetail() {
                   }}
                 />
               ) : (
-                <div className="h-full flex items-center justify-center text-neutral-400 text-sm">
+                <div className="flex h-full items-center justify-center text-sm text-neutral-400">
                   No solution available yet.
                 </div>
               )}
             </div>
+        </div>
+      )}
+      </div>
 
-            {/* Notes section */}
-            <div className="flex flex-col gap-2 shrink-0">
-              <label className="text-sm font-medium text-neutral-700">My Notes</label>
-              <Textarea
-                value={answerNotes}
-                onChange={(e) => setAnswerNotes(e.target.value)}
-                placeholder="Write your notes about this solution..."
-                className="resize-none font-mono"
-                rows={4}
-              />
-              <Button
-                size="sm"
-                className="self-end"
-                onClick={() => {
-                  saveAnswerNote(problem.id, answerNotes);
-                  toast.success("Notes saved!");
-                }}
-              >
-                Save Notes
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
