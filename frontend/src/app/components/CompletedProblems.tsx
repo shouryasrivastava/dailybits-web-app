@@ -66,7 +66,7 @@ export function CompletedProblems() {
             <p className="text-neutral-500 mb-4">
               No completed problems yet
             </p>
-            <Link to="/">
+            <Link to="/problems">
               <Button>Start Practicing</Button>
             </Link>
           </div>

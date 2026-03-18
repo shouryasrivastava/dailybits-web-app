@@ -130,7 +130,7 @@ export function TodoList() {
           ) : todoItems.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-neutral-500 mb-4">Your todo list is empty</p>
-              <Link to="/">
+              <Link to="/problems">
                 <Button>Browse Problems</Button>
               </Link>
             </div>
@@ -218,7 +218,7 @@ export function TodoList() {
       </div>
 
       {/* Study Plan Chat */}
-      <div className="w-96 border-l border-neutral-200">
+      <div className="w-[34rem] min-w-[34rem] border-l border-neutral-200 xl:w-[38rem] xl:min-w-[38rem]">
         <StudyPlanChat
           onPlanAccepted={() => {
             fetchTodoItemsApi(ACCOUNT_NUMBER)

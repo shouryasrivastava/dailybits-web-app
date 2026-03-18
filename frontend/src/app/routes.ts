@@ -1,4 +1,5 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
+import { createElement } from "react";
 import { Layout } from "./components/Layout";
 import { ProblemList } from "./components/ProblemList";
 import { ProblemDetail } from "./components/ProblemDetail";
@@ -17,7 +18,8 @@ export const router = createBrowserRouter([
     path: "/",
     Component: Layout,
     children: [
-      { index: true, Component: ProblemList },
+      { index: true, element: createElement(Navigate, { to: "/todo", replace: true }) },
+      { path: "problems", Component: ProblemList },
       { path: "problem/:id", Component: ProblemDetail },
       { path: "todo", Component: TodoList },
       { path: "completed", Component: CompletedProblems },

@@ -136,7 +136,7 @@ export function ProblemDetail() {
           <h2 className="text-xl font-semibold text-neutral-900 mb-2">
             Problem not found
           </h2>
-          <Button onClick={() => navigate("/")}>Back to Problems</Button>
+          <Button onClick={() => navigate("/problems")}>Back to Problems</Button>
         </div>
       </div>
     );
@@ -213,7 +213,7 @@ export function ProblemDetail() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/problems")}
             className="gap-1"
           >
             <ChevronLeft className="w-4 h-4" />

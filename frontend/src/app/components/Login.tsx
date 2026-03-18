@@ -34,7 +34,7 @@ export default function Login() {
     }
 
     setMessage("Login successful");
-    navigate("/");
+    navigate("/todo");
   };
 
   return (

@@ -20,7 +20,7 @@ import { useNavigate } from "react-router";
 import { supabase } from "../utils/supabase";
 
 const navigation = [
-  { name: "Problems", href: "/", icon: BookOpen },
+  { name: "Problems", href: "/problems", icon: BookOpen },
   { name: "Todo List", href: "/todo", icon: ListTodo },
   { name: "Completed", href: "/completed", icon: CheckCircle2 },
   { name: "Progress", href: "/status", icon: BarChart3 },

@@ -154,8 +154,8 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
-      <div className="border-b border-neutral-200 p-6">
+    <div className="flex h-full min-h-0 flex-col bg-white">
+      <div className="shrink-0 border-b border-neutral-200 p-6">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-sky-700" />
           <h2 className="font-semibold text-neutral-900">
@@ -167,7 +167,7 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
         </p>
       </div>
 
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="min-h-0 flex-1 p-4">
         <div className="space-y-4">
           {messages.map((message, idx) => (
             <div
@@ -213,7 +213,7 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
       </ScrollArea>
 
       {currentPlan && (
-        <div className="border-t border-neutral-200 p-4 bg-slate-50">
+        <div className="shrink-0 border-t border-neutral-200 bg-slate-50 p-4">
           <Button
             onClick={handleAcceptPlan}
             disabled={isAccepting}
@@ -225,7 +225,7 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
         </div>
       )}
 
-      <div className="border-t border-neutral-200 p-4">
+      <div className="shrink-0 border-t border-neutral-200 p-4">
         <div className="flex gap-2">
           <Textarea
             value={input}

@@ -284,7 +284,7 @@ export function UserProgress() {
                 <p className="text-neutral-500 mb-4">
                   No problems completed yet
                 </p>
-                <Link to="/">
+                <Link to="/problems">
                   <Button>Start Practicing</Button>
                 </Link>
               </div>
@@ -318,7 +318,7 @@ export function UserProgress() {
             {recentActivity.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-neutral-500 mb-4">No recent activity</p>
-                <Link to="/">
+                <Link to="/problems">
                   <Button>Browse Problems</Button>
                 </Link>
               </div>
