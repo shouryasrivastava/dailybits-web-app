@@ -9,12 +9,15 @@ import {
   BarChart3,
   Shield,
   User,
+  LogOut,
 } from "lucide-react";
 import { cn } from "./ui/utils";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { getCurrentUser, getUserRole } from "../utils/storage";
+import { useNavigate } from "react-router";
+import { supabase } from "../utils/supabase";
 
 const navigation = [
   { name: "Problems", href: "/", icon: BookOpen },
@@ -29,6 +32,13 @@ export function Layout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const userRole = getUserRole();
   const currentUser = getCurrentUser();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
 
   const fullNavigation = [
     ...navigation,
@@ -112,7 +122,23 @@ export function Layout() {
           )}
         </div>
 
-        <div className="p-4 border-t border-neutral-200">
+        <div className="px-4 py-2 border-t border-neutral-200">
+          {/* Logout */}
+          <div className={cn("px-4 py-2", isCollapsed && "px-2")}>
+            <button
+              onClick={handleLogout}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-neutral-600 hover:bg-neutral-100 transition-colors",
+                isCollapsed && "justify-center",
+              )}
+            >
+              <LogOut className="w-5 h-5 flex-shrink-0 text-red-500" />
+              {!isCollapsed && (
+                <span className="font-medium text-red-500">Logout</span>
+              )}
+            </button>
+          </div>
+
           <Button
             variant="ghost"
             size="sm"
