@@ -9,6 +9,8 @@ import { Admin } from "./components/Admin";
 import { AdminProblemManager } from "./components/AdminProblemManager";
 import { AdminUserManager } from "./components/AdminUserManager";
 import { UserProfilePage } from "./components/UserProfilePage";
+import Login from "./components/Login";
+import Signup from "./components/Signup";
 
 export const router = createBrowserRouter([
   {
@@ -24,6 +26,8 @@ export const router = createBrowserRouter([
       { path: "admin/problems", Component: AdminProblemManager },
       { path: "admin/users", Component: AdminUserManager },
       { path: "profile", Component: UserProfilePage },
+      { path: "login", Component: Login },
+      { path: "signup", Component: Signup },
     ],
   },
 ]);
