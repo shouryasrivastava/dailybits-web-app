@@ -418,6 +418,29 @@ export function apiTodoToFrontend(item: ApiTodoItem): TodoItem {
 }
 
 // ============================================================
+// Code Check (Gemini)
+// ============================================================
+
+export function checkCodeWithGemini(
+  accountNumber: number,
+  problemId: number,
+  code: string,
+  problemTitle: string,
+  problemDescription: string,
+): Promise<{ is_correct: boolean; feedback: string }> {
+  return apiFetch("/chat/check-code/", {
+    method: "POST",
+    body: JSON.stringify({
+      account_number: accountNumber,
+      problem_id: problemId,
+      code,
+      problem_title: problemTitle,
+      problem_description: problemDescription,
+    }),
+  });
+}
+
+// ============================================================
 // Submission
 // ============================================================
 

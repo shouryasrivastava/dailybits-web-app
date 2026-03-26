@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import Editor from "@monaco-editor/react";
-import { ChevronLeft, Eye, CheckCircle, BookmarkPlus, GripHorizontal, X } from "lucide-react";
+import { ChevronLeft, Eye, CheckCircle, BookmarkPlus, GripHorizontal, X, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -20,6 +20,7 @@ import {
   fetchSolution,
   addTodoApi,
   submitProblemApi,
+  checkCodeWithGemini,
 } from "../utils/api";
 import { Problem } from "../types";
 
@@ -34,6 +35,7 @@ export function ProblemDetail() {
   const [code, setCode] = useState("");
   const [notes, setNotes] = useState("");
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
   const [solution, setSolution] = useState<string | null>(null);
   const [solutionLoading, setSolutionLoading] = useState(false);
@@ -165,22 +167,41 @@ export function ProblemDetail() {
     }
   };
 
-  const handleMarkComplete = async () => {
+  const handleSubmit = async () => {
+    if (!problem || isChecking || isCompleted) return;
+    setIsChecking(true);
     try {
-      await submitProblemApi(ACCOUNT_NUMBER, Number(problem.id), code, true);
+      const result = await checkCodeWithGemini(
+        ACCOUNT_NUMBER,
+        Number(problem.id),
+        code,
+        problem.title,
+        problem.description,
+      );
+      if (result.is_correct) {
+        try {
+          await submitProblemApi(ACCOUNT_NUMBER, Number(problem.id), code, true);
+        } catch {
+          toast.error("Failed to submit problem");
+          return;
+        }
+        saveCompletedProblem({
+          problemId: problem.id,
+          completedAt: new Date(),
+          code,
+          notes,
+        });
+        clearCodeCache(problem.id);
+        setIsCompleted(true);
+        toast.success("Correct! Problem marked as completed.");
+      } else {
+        toast.error(result.feedback || "Your solution doesn't seem correct yet. Keep trying!");
+      }
     } catch {
-      toast.error("Failed to submit problem");
-      return;
+      toast.error("Failed to check code. Please try again.");
+    } finally {
+      setIsChecking(false);
     }
-    saveCompletedProblem({
-      problemId: problem.id,
-      completedAt: new Date(),
-      code,
-      notes,
-    });
-    clearCodeCache(problem.id);
-    setIsCompleted(true);
-    toast.success("Problem marked as completed!");
   };
 
   const handleAddToTodo = async () => {
@@ -299,12 +320,26 @@ export function ProblemDetail() {
             </Button>
             <Button
               size="sm"
-              onClick={handleMarkComplete}
+              onClick={handleSubmit}
               className="bg-slate-600 hover:bg-slate-700"
-              disabled={isCompleted}
+              disabled={isCompleted || isChecking}
             >
-              <CheckCircle className="w-4 h-4 mr-1" />
-              {isCompleted ? "Completed" : "Mark Complete"}
+              {isChecking ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  Checking...
+                </>
+              ) : isCompleted ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Completed
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Submit
+                </>
+              )}
             </Button>
           </div>
         </div>

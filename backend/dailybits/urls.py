@@ -19,7 +19,7 @@ from api.views.auth_views import signup, login, get_profile, update_profile, lis
 from api.views.problem_views import list_problems, get_single_problem, submit_problem, add_problem, delete_problem,update_problem, publish_problem
 from api.views.tag_views import list_tags, list_tag_problems
 from api.views.submission_views import list_submissions
-from api.views.chat_views import generate_plan, accept_plan, chat_history
+from api.views.chat_views import generate_plan, accept_plan, chat_history, check_code
 from api.views.progress_views import get_user_progress, get_recent_activity, get_algorithm_progress
 from api.views.studyplan_views import list_study_plans
 from api.views.admin_views import (
@@ -87,6 +87,7 @@ urlpatterns = [
     path("chat/generate-plan/", generate_plan),
     path("chat/accept-plan/", accept_plan),
     path("chat/history/<int:account_number>/", chat_history),
+    path("chat/check-code/", check_code),
 
     # Progress
     path("progress/<int:account_number>/", get_user_progress),
