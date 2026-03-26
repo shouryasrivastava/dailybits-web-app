@@ -52,10 +52,12 @@ def _call_gemini(prompt):
     if not GEMINI_API_KEY:
         return None
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        response = model.generate_content(prompt)
+        from google import genai
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash-lite",
+            contents=prompt,
+        )
         text = response.text.strip()
         if text.startswith("```"):
             text = text.split("\n", 1)[1]
@@ -200,6 +202,47 @@ def accept_plan(request):
         cur.execute("UPDATE study_plan SET is_accepted = TRUE WHERE plan_id = %s", [plan_id])
 
     return Response({"success": True, "plan_id": plan_id})
+
+
+def _build_code_check_prompt(code, problem_title, problem_description):
+    return (
+        "You are a code reviewer for a coding practice platform. "
+        "Evaluate whether the submitted Python code is a valid, correct solution to the given problem. "
+        "You MUST respond with valid JSON only — no markdown, no commentary.\n\n"
+        f"Problem Title: {problem_title}\n"
+        f"Problem Description: {problem_description}\n\n"
+        f"Submitted Code:\n{code}\n\n"
+        "Respond with this exact JSON structure:\n"
+        '{\"is_correct\": <true or false>, \"feedback\": \"<brief feedback>\"}\n\n'
+        "Rules:\n"
+        "- is_correct should be true only if the code appears to correctly solve the problem\n"
+        "- If the code is just the starter/template code with no real implementation, mark as false\n"
+        "- If the code has a valid algorithmic approach, mark as true even if there are minor style issues\n"
+        "- Feedback should be 1-2 sentences, constructive and specific\n"
+    )
+
+
+@api_view(["POST"])
+def check_code(request):
+    account_number = request.data.get("account_number")
+    problem_id = request.data.get("problem_id")
+    code = request.data.get("code", "").strip()
+    problem_title = request.data.get("problem_title", "")
+    problem_description = request.data.get("problem_description", "")
+
+    if not account_number or not problem_id or not code:
+        return Response({"error": "account_number, problem_id, and code are required"}, status=400)
+
+    prompt = _build_code_check_prompt(code, problem_title, problem_description)
+    result = _call_gemini(prompt)
+
+    if result is None:
+        return Response({"error": "Failed to check code with AI"}, status=500)
+
+    is_correct = result.get("is_correct", False)
+    feedback = result.get("feedback", "")
+
+    return Response({"is_correct": is_correct, "feedback": feedback})
 
 
 @api_view(["GET"])

@@ -19,12 +19,7 @@ CREATE TABLE user_profile (
 
 CREATE TABLE user_auth (
     email VARCHAR(100) PRIMARY KEY,
-    password VARCHAR(255),
-    google_id VARCHAR(100) UNIQUE,
-    CONSTRAINT check_oauth_login
-        CHECK (
-            (google_id IS NOT NULL) or (password IS NOT NULL)
-        ),
+    password VARCHAR(255) NOT NULL,
     FOREIGN KEY (email) REFERENCES user_profile (email) ON DELETE CASCADE
 );
 

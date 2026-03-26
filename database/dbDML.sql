@@ -21,18 +21,18 @@ INSERT INTO user_profile (email, first_name, last_name) VALUES
     ('liam.brooks@gmail.com', 'Liam', 'Brooks'),
     ('amira.hassan@gmail.com', 'Amira', 'Hassan');
 
-INSERT INTO user_auth (email, password, google_id) VALUES
-    ('ma.ruit@northeastern.edu', 'hashed_password_1', NULL),
-    ('zhang.shuyi1@husky.neu.edu', 'hashed_password_2', NULL),
-    ('student@gmail.com', 'hashed_password_3', NULL),
-    ('admin@gmail.com', 'admin_hashed_password', NULL),
-    ('test.delete.user@gmail.com', 'test_delete_user_password', NULL),
-    ('alex.chen@gmail.com', NULL, 'google-oauth2|10000001'),
-    ('maya.patel@gmail.com', 'hashed_password_5', NULL),
-    ('jordan.wells@gmail.com', NULL, 'google-oauth2|10000002'),
-    ('sofia.garcia@gmail.com', 'hashed_password_7', NULL),
-    ('liam.brooks@gmail.com', 'hashed_password_8', NULL),
-    ('amira.hassan@gmail.com', NULL, 'google-oauth2|10000003');
+INSERT INTO user_auth (email, password) VALUES
+    ('ma.ruit@northeastern.edu', 'hashed_password_1'),
+    ('zhang.shuyi1@husky.neu.edu', 'hashed_password_2'),
+    ('student@gmail.com', 'hashed_password_3'),
+    ('admin@gmail.com', 'admin_hashed_password'),
+    ('test.delete.user@gmail.com', 'test_delete_user_password'),
+    ('alex.chen@gmail.com', 'hashed_password_4'),
+    ('maya.patel@gmail.com', 'hashed_password_5'),
+    ('jordan.wells@gmail.com', 'hashed_password_6'),
+    ('sofia.garcia@gmail.com', 'hashed_password_7'),
+    ('liam.brooks@gmail.com', 'hashed_password_8'),
+    ('amira.hassan@gmail.com', 'hashed_password_9');
 
 INSERT INTO account (email, register_date, student_flag, admin_flag) VALUES
     ('ma.ruit@northeastern.edu', '2025-01-15', TRUE, FALSE),
