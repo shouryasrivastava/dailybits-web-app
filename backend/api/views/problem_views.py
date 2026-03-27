@@ -1,6 +1,5 @@
 from django.db import connection
 from django.http import JsonResponse
-from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -72,14 +71,12 @@ def submit_problem(request, pid):
     if not account_number or not submission_text:
         return JsonResponse({"error": "Missing required fields"}, status=400)
 
-    now = timezone.now()
-
     with connection.cursor() as cursor:
         cursor.execute("""
-            INSERT INTO SUBMISSION
-            (Problem_ID, Account_number, Submission_description, Is_correct, Time_start, Time_end)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, [pid, account_number, submission_text, is_correct, now, now])
+            INSERT INTO submission
+            (problem_id, account_number, submitted_code, is_correct)
+            VALUES (%s, %s, %s, %s)
+        """, [pid, account_number, submission_text, is_correct])
 
     return JsonResponse({"success": True})
 
