@@ -189,7 +189,7 @@ export function apiProblemListToFrontend(item: ApiProblemListItem): Problem {
     id: String(item.problem_id),
     title: item.problem_title,
     difficulty: item.difficulty_level as Difficulty,
-    algorithm: item.algorithms || [],
+    algorithm: (item.algorithms || [])[0] || "",
     estimateTime: item.estimate_time_baseline ?? undefined,
     isPublished: item.is_published,
     description: item.problem_description,
@@ -205,7 +205,7 @@ export function apiProblemDetailToFrontend(item: ApiProblemDetail): Problem {
     id: String(item.problem_id),
     title: item.problem_title,
     difficulty: item.difficulty_level as Difficulty,
-    algorithm: item.algorithms || [],
+    algorithm: (item.algorithms || [])[0] || "",
     estimateTime: item.estimate_time_baseline ?? undefined,
     isPublished: item.is_published,
     description: item.problem_description,
@@ -240,6 +240,9 @@ export interface ApiSolution {
   sId: number;
   pId: number;
   sDescription: string;
+  solutionExplanation: string;
+  timeComplexity: string;
+  spaceComplexity: string;
   success: boolean;
 }
 
@@ -250,10 +253,13 @@ export function fetchSolution(pId: number): Promise<ApiSolution> {
 export function saveSolution(
   pId: number,
   sDescription: string,
+  solutionExplanation = "",
+  timeComplexity = "",
+  spaceComplexity = "",
 ): Promise<{ success: boolean }> {
   return apiFetch("/solutions/add/", {
     method: "POST",
-    body: JSON.stringify({ pId, sDescription }),
+    body: JSON.stringify({ pId, sDescription, solutionExplanation, timeComplexity, spaceComplexity }),
   });
 }
 
@@ -390,14 +396,14 @@ export interface ApiTodoItem {
   difficulty_level: string;
   added_at: string;
   algorithms: string[];
-  is_completed: boolean;
+  source: "manual" | "study_plan";
 }
 
 export function fetchTodoItemsApi(accountNumber: number): Promise<{ results: ApiTodoItem[] }> {
   return apiFetch(`/todo/${accountNumber}/`);
 }
 
-export function addTodoApi(accountNumber: number, problemId: number): Promise<{ success: boolean }> {
+export function addTodoApi(accountNumber: number, problemId: number): Promise<{ success: boolean; already_exists?: boolean }> {
   return apiFetch("/todo/add/", {
     method: "POST",
     body: JSON.stringify({ account_number: accountNumber, problem_id: problemId }),
@@ -408,13 +414,20 @@ export function removeTodoApi(accountNumber: number, problemId: number): Promise
   return apiFetch(`/todo/${accountNumber}/${problemId}/`, { method: "DELETE" });
 }
 
-export function apiTodoToFrontend(item: ApiTodoItem): TodoItem {
-  return {
-    problemId: String(item.problem_id),
-    addedAt: new Date(item.added_at),
-    todoId: item.todo_id,
-    source: "manual",
-  };
+
+// ============================================================
+// Notes
+// ============================================================
+
+export function fetchNoteApi(accountNumber: number, problemId: number): Promise<{ note_content: string }> {
+  return apiFetch(`/notes/${accountNumber}/${problemId}/`);
+}
+
+export function saveNoteApi(accountNumber: number, problemId: number, noteContent: string): Promise<{ success: boolean }> {
+  return apiFetch("/notes/save/", {
+    method: "POST",
+    body: JSON.stringify({ account_number: accountNumber, problem_id: problemId, note_content: noteContent }),
+  });
 }
 
 // ============================================================
@@ -443,6 +456,19 @@ export function checkCodeWithGemini(
 // ============================================================
 // Submission
 // ============================================================
+
+export interface ApiSubmission {
+  submission_id: number;
+  problem_id: number;
+  problem_title: string;
+  is_correct: boolean;
+  submitted_at: string | null;
+  submitted_code: string;
+}
+
+export function fetchSubmissionsApi(accountNumber: number): Promise<ApiSubmission[]> {
+  return apiFetch(`/submissions/${accountNumber}/`);
+}
 
 export function submitProblemApi(
   accountNumber: number,

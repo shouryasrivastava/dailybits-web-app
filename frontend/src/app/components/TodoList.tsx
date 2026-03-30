@@ -1,53 +1,23 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { Trash2, GripVertical, CheckCircle, StickyNote } from "lucide-react";
-import {
-  getCompletedProblems,
-  saveCompletedProblem,
-  getCodeCache,
-  getTodoNote,
-  saveTodoNote,
-} from "../utils/storage";
+import { Trash2 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "./ui/dialog";
-import { Textarea } from "./ui/textarea";
 import { toast } from "sonner";
 import { StudyPlanChat } from "./StudyPlanChat";
-import {
-  fetchTodoItemsApi,
-  removeTodoApi,
-  submitProblemApi,
-  ApiTodoItem,
-} from "../utils/api";
+import { fetchTodoItemsApi, removeTodoApi, ApiTodoItem } from "../utils/api";
 
 const ACCOUNT_NUMBER = 1;
 
 export function TodoList() {
   const [todoItems, setTodoItems] = useState<ApiTodoItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [completedProblems, setCompletedProblems] = useState(
-    getCompletedProblems(),
-  );
-  const [selectedForNotes, setSelectedForNotes] = useState<number | null>(null);
-  const [currentNotes, setCurrentNotes] = useState("");
-
   useEffect(() => {
     fetchTodoItemsApi(ACCOUNT_NUMBER)
       .then((res) => setTodoItems(res.results))
       .catch(() => toast.error("Failed to load todo list"))
       .finally(() => setLoading(false));
   }, []);
-
-  const refreshCompleted = () => {
-    setCompletedProblems(getCompletedProblems());
-  };
 
   const handleRemove = async (item: ApiTodoItem) => {
     try {
@@ -56,43 +26,6 @@ export function TodoList() {
       toast.success("Removed from todo list");
     } catch {
       toast.error("Failed to remove from todo list");
-    }
-  };
-
-  const handleMarkComplete = async (item: ApiTodoItem) => {
-    const codeCache = getCodeCache();
-    const cachedCode = codeCache[String(item.problem_id)] || "";
-    const note = getTodoNote(String(item.problem_id));
-
-    try {
-      await submitProblemApi(ACCOUNT_NUMBER, item.problem_id, cachedCode, true);
-      await removeTodoApi(ACCOUNT_NUMBER, item.problem_id);
-    } catch {
-      toast.error("Failed to mark problem as complete");
-      return;
-    }
-
-    saveCompletedProblem({
-      problemId: String(item.problem_id),
-      completedAt: new Date(),
-      code: cachedCode,
-      notes: note,
-    });
-    setTodoItems((prev) => prev.filter((t) => t.todo_id !== item.todo_id));
-    refreshCompleted();
-    toast.success("Problem marked as completed!");
-  };
-
-  const handleOpenNotes = (item: ApiTodoItem) => {
-    setCurrentNotes(getTodoNote(String(item.problem_id)));
-    setSelectedForNotes(item.problem_id);
-  };
-
-  const handleSaveNotes = () => {
-    if (selectedForNotes !== null) {
-      saveTodoNote(String(selectedForNotes), currentNotes);
-      setSelectedForNotes(null);
-      toast.success("Study notes saved!");
     }
   };
 
@@ -137,15 +70,12 @@ export function TodoList() {
           ) : (
             <div className="space-y-3">
               {todoItems.map((item) => {
-                const note = getTodoNote(String(item.problem_id));
                 return (
                   <div
                     key={item.todo_id}
                     className="border border-neutral-200 rounded-lg p-4 bg-white hover:shadow-sm transition-shadow"
                   >
                     <div className="flex items-start gap-4">
-                      <GripVertical className="w-5 h-5 text-neutral-400 mt-1 cursor-move" />
-
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <Link
@@ -156,20 +86,24 @@ export function TodoList() {
                           </Link>
                           <Badge
                             variant="outline"
-                            className={getDifficultyColor(item.difficulty_level)}
+                            className={getDifficultyColor(
+                              item.difficulty_level,
+                            )}
                           >
                             {item.difficulty_level}
                           </Badge>
+                          {item.source === "study_plan" && (
+                            <Badge
+                              variant="outline"
+                              className="bg-sky-50 text-sky-700 border-sky-200"
+                            >
+                              Study Plan
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
                           {item.problem_description}
                         </p>
-                        {note && (
-                          <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
-                            <span className="font-medium">Notes: </span>
-                            {note}
-                          </div>
-                        )}
                         <div className="flex items-center gap-2 flex-wrap">
                           {item.algorithms.map((alg) => (
                             <span
@@ -179,24 +113,6 @@ export function TodoList() {
                               {alg}
                             </span>
                           ))}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenNotes(item)}
-                            className="h-7 text-xs gap-1"
-                          >
-                            <StickyNote className="w-3 h-3" />
-                            {note ? "Edit Notes" : "Add Notes"}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleMarkComplete(item)}
-                            className="h-7 text-xs gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                          >
-                            <CheckCircle className="w-3 h-3" />
-                            Mark Complete
-                          </Button>
                         </div>
                       </div>
 
@@ -227,32 +143,6 @@ export function TodoList() {
           }}
         />
       </div>
-
-      {/* Notes Dialog */}
-      <Dialog
-        open={selectedForNotes !== null}
-        onOpenChange={(open) => !open && setSelectedForNotes(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Study Notes</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              value={currentNotes}
-              onChange={(e) => setCurrentNotes(e.target.value)}
-              placeholder="Add your study notes, key insights, or reminders for this problem..."
-              className="min-h-[200px] resize-none"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedForNotes(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveNotes}>Save Notes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

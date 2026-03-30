@@ -22,7 +22,7 @@ import { supabase } from "../utils/supabase";
 const navigation = [
   { name: "Problems", href: "/problems", icon: BookOpen },
   { name: "Todo List", href: "/todo", icon: ListTodo },
-  { name: "Completed", href: "/completed", icon: CheckCircle2 },
+  { name: "Submissions", href: "/submissions", icon: CheckCircle2 },
   { name: "Progress", href: "/status", icon: BarChart3 },
   { name: "My Profile", href: "/profile", icon: User },
 ];
@@ -40,10 +40,10 @@ export function Layout() {
     navigate("/login");
   };
 
-  const fullNavigation = [
-    ...navigation,
-    { name: "Admin", href: "/admin", icon: Shield },
-  ];
+  const fullNavigation =
+    userRole === "administrator"
+      ? [...navigation, { name: "Admin", href: "/admin", icon: Shield }]
+      : navigation;
 
   return (
     <div className="flex h-screen bg-neutral-50">
@@ -132,9 +132,9 @@ export function Layout() {
                 isCollapsed && "justify-center",
               )}
             >
-              <LogOut className="w-5 h-5 flex-shrink-0 text-red-500" />
+              <LogOut className="w-5 h-5 flex-shrink-0 text-rose-800" />
               {!isCollapsed && (
-                <span className="font-medium text-red-500">Logout</span>
+                <span className="font-medium text-rose-800">Logout</span>
               )}
             </button>
           </div>

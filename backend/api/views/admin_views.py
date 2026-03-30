@@ -11,9 +11,6 @@ Endpoints:
   PATCH  /admin/users/<account_number>/toggle-admin/ — toggle a user's admin flag
   GET    /admin/algorithms/                       — list all algorithm names (for dropdown)
 
-Legacy endpoints (kept for backwards compatibility):
-  GET    /admin/user-stats/                       — per-user submission stats
-  GET    /admin/problem-stats/                    — per-problem performance stats
 """
 
 from django.db import connection, transaction, DatabaseError
@@ -351,57 +348,3 @@ def admin_list_algorithms(request):
         rows = cursor.fetchall()
 
     return Response([{"id": r[0], "name": r[1]} for r in rows])
-
-
-# ============================================================
-# Legacy analytics endpoints (old schema — kept for reference)
-# ============================================================
-
-@api_view(["GET"])
-def admin_user_stats(request):
-    """Per-user submission summary (uses old schema column names)."""
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT
-                a.Account_number,
-                up.Email,
-                up.First_name,
-                up.Last_name,
-                COUNT(s.Submission_ID) AS total_submissions,
-                SUM(CASE WHEN s.Is_correct = TRUE THEN 1 ELSE 0 END) AS correct_submissions
-            FROM ACCOUNT a
-            LEFT JOIN USER_PROFILE up ON a.Email = up.Email
-            LEFT JOIN SUBMISSION s    ON a.Account_number = s.Account_number
-            GROUP BY a.Account_number, up.Email, up.First_name, up.Last_name
-            ORDER BY correct_submissions DESC, total_submissions DESC, a.Account_number ASC;
-        """)
-        columns = [col[0] for col in cursor.description]  # type: ignore
-        rows = cursor.fetchall()
-
-    return Response([dict(zip(columns, row)) for row in rows])
-
-
-@api_view(["GET"])
-def admin_problem_stats(request):
-    """Per-problem performance summary (uses old schema — TAG/DIFFICULTY_TAG/CONCEPT_TAG)."""
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT
-                p.Problem_ID,
-                p.Problem_description,
-                d.Difficulty_level,
-                c.SQL_concept,
-                COUNT(s.Submission_ID) AS submission_count,
-                SUM(CASE WHEN s.Is_correct = TRUE THEN 1 ELSE 0 END) AS correct_submissions
-            FROM PROBLEM p
-            LEFT JOIN TAG t            ON p.Tag_ID = t.Tag_ID
-            LEFT JOIN DIFFICULTY_TAG d ON t.Difficulty_ID = d.Difficulty_ID
-            LEFT JOIN CONCEPT_TAG c    ON t.Concept_ID = c.Concept_ID
-            LEFT JOIN SUBMISSION s     ON p.Problem_ID = s.Problem_ID
-            GROUP BY p.Problem_ID, p.Problem_description, d.Difficulty_level, c.SQL_concept
-            ORDER BY submission_count DESC, p.Problem_ID ASC;
-        """)
-        columns = [col[0] for col in cursor.description]
-        rows = cursor.fetchall()
-
-    return Response([dict(zip(columns, row)) for row in rows])

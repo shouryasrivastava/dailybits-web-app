@@ -4,7 +4,7 @@ export interface Problem {
   id: string;
   title: string;
   difficulty: Difficulty;
-  algorithm: string[];
+  algorithm: string;
   estimateTime?: number;
   isPublished?: boolean;
   description: string;
@@ -21,27 +21,19 @@ export interface CompletedProblem {
   problemId: string;
   completedAt: Date;
   code: string;
-  notes: string;
+  notes?: string;
   isCorrect?: boolean;
+  title?: string;
+  difficulty?: Difficulty;
 }
 
 export interface TodoItem {
   problemId: string;
   addedAt: Date;
-  priority?: "low" | "medium" | "high";
-  notes?: string;
   todoId?: number;
   source?: 'manual' | 'study_plan';
 }
 
-export interface StudyPlan {
-  planId: string;
-  planName: string;
-  problems: string[];
-  createdAt: Date;
-  timeAvailable?: number;
-  isAccepted?: boolean;
-}
 
 export interface UserRole {
   role: "user" | "administrator";
@@ -57,11 +49,3 @@ export interface AppUser {
   isStudent?: boolean;
 }
 
-export interface Solution {
-  solutionId: number;
-  problemId: number;
-  solutionCode: string;
-  solutionExplanation?: string;
-  timeComplexity?: string;
-  spaceComplexity?: string;
-}

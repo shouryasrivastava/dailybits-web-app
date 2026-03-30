@@ -8,7 +8,8 @@ def get_solution(request, pId):
     try:
         with connection.cursor() as cursor:
             cursor.execute("""
-                SELECT solution_id, problem_id, solution_code
+                SELECT solution_id, problem_id, solution_code,
+                       solution_explanation, time_complexity, space_complexity
                 FROM solution
                 WHERE problem_id = %s
             """, [pId])
@@ -18,6 +19,9 @@ def get_solution(request, pId):
                     'sId': row[0],
                     'pId': row[1],
                     'sDescription': row[2],
+                    'solutionExplanation': row[3] or '',
+                    'timeComplexity': row[4] or '',
+                    'spaceComplexity': row[5] or '',
                     'success': True
                 })
             else:
@@ -37,6 +41,9 @@ def add_solution(request):
     data = request.data
     pId = data.get('pId')
     sDescription = data.get('sDescription')
+    solutionExplanation = data.get('solutionExplanation', '')
+    timeComplexity = data.get('timeComplexity', '')
+    spaceComplexity = data.get('spaceComplexity', '')
     if not pId:
         return Response({
             'error': 'Missing required fields',
@@ -71,15 +78,18 @@ def add_solution(request):
                     # Update existing
                     cursor.execute("""
                         UPDATE solution
-                        SET solution_code = %s
+                        SET solution_code = %s,
+                            solution_explanation = %s,
+                            time_complexity = %s,
+                            space_complexity = %s
                         WHERE problem_id = %s
-                    """, [cleaned_description, pId])
+                    """, [cleaned_description, solutionExplanation, timeComplexity, spaceComplexity, pId])
                 else:
                     # Insert new
                     cursor.execute("""
-                        INSERT INTO solution (problem_id, solution_code)
-                        VALUES (%s, %s)
-                    """, [pId, cleaned_description])
+                        INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, [pId, cleaned_description, solutionExplanation, timeComplexity, spaceComplexity])
                 
                 return Response({
                     'success': True

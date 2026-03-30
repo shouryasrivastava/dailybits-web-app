@@ -67,6 +67,9 @@ interface ProblemFormData {
   constraints: string[];
   starterCode: string;
   solutionCode: string;
+  solutionExplanation: string;
+  timeComplexity: string;
+  spaceComplexity: string;
 }
 
 /** Default blank form used when adding a new problem or resetting the dialog */
@@ -80,6 +83,9 @@ const emptyForm: ProblemFormData = {
   constraints: [""],
   starterCode: "",
   solutionCode: "",
+  solutionExplanation: "",
+  timeComplexity: "",
+  spaceComplexity: "",
 };
 
 /** Hardcoded fallback used if the backend algorithm list fails to load */
@@ -114,6 +120,7 @@ export function AdminProblemManager() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewProblem, setPreviewProblem] = useState<Problem | null>(null);
   const [previewSolutionCode, setPreviewSolutionCode] = useState("");
+  const [previewSolutionMeta, setPreviewSolutionMeta] = useState({ explanation: "", time: "", space: "" });
 
   // Algorithm dropdown: DB-loaded list + session-added custom names
   const [dbAlgorithms, setDbAlgorithms] = useState<string[]>([]);
@@ -124,14 +131,11 @@ export function AdminProblemManager() {
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingProblemId, setDeletingProblemId] = useState<string | null>(null);
+
+  // Saving state to prevent double-submits
+  const [saving, setSaving] = useState(false);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const solutionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  // Redirect non-admin users back to the admin landing page
-  if (userRole !== "administrator") {
-    navigate("/admin");
-    return null;
-  }
 
   /** Fetch the problem list from the backend */
   const refreshProblems = async () => {
@@ -143,15 +147,20 @@ export function AdminProblemManager() {
     }
   };
 
-  // Load problems and algorithms on mount
+  // Redirect non-admins and load data on mount — single effect keeps hook
+  // call count consistent regardless of userRole.
   useEffect(() => {
+    if (userRole !== "administrator") {
+      navigate("/admin");
+      return;
+    }
     refreshProblems().finally(() => setLoading(false));
-
-    // Load algorithm names from the DB for the dropdown
     fetchAlgorithms()
       .then((algos) => setDbAlgorithms(algos.map((a) => a.name)))
       .catch(() => setDbAlgorithms(FALLBACK_ALGORITHMS));
-  }, []);
+  }, [navigate]);
+
+  if (userRole !== "administrator") return null;
 
   /** Open the dialog in "add" mode with a blank form */
   const openAddDialog = () => {
@@ -166,25 +175,34 @@ export function AdminProblemManager() {
     const fullProblem = apiProblemDetailToFrontend(detail);
 
     let solutionCode = "";
+    let solutionExplanation = "";
+    let timeComplexity = "";
+    let spaceComplexity = "";
     try {
       const solution = await fetchSolution(problemId);
       solutionCode = solution.sDescription || "";
+      solutionExplanation = solution.solutionExplanation || "";
+      timeComplexity = solution.timeComplexity || "";
+      spaceComplexity = solution.spaceComplexity || "";
     } catch (err: any) {
       if (!String(err.message).toLowerCase().includes("solution not found")) {
         throw err;
       }
     }
 
-    return { fullProblem, solutionCode };
+    return { fullProblem, solutionCode, solutionExplanation, timeComplexity, spaceComplexity };
   };
 
   const buildFormFromProblem = (
     fullProblem: Problem,
     solutionCode: string,
+    solutionExplanation = "",
+    timeComplexity = "",
+    spaceComplexity = "",
   ): ProblemFormData => ({
     title: fullProblem.title,
     difficulty: fullProblem.difficulty,
-    algorithm: fullProblem.algorithm[0] || "",
+    algorithm: fullProblem.algorithm,
     estimateTime: fullProblem.estimateTime?.toString() || "",
     description: fullProblem.description,
     examples: fullProblem.examples.length > 0
@@ -195,6 +213,9 @@ export function AdminProblemManager() {
       : [""],
     starterCode: fullProblem.starterCode,
     solutionCode,
+    solutionExplanation,
+    timeComplexity,
+    spaceComplexity,
   });
 
   /** Open the preview dialog for a problem */
@@ -204,9 +225,10 @@ export function AdminProblemManager() {
     setPreviewProblem(null);
     setPreviewSolutionCode("");
     try {
-      const { fullProblem, solutionCode } = await loadProblemEditorData(Number(problem.id));
+      const { fullProblem, solutionCode, solutionExplanation, timeComplexity, spaceComplexity } = await loadProblemEditorData(Number(problem.id));
       setPreviewProblem(fullProblem);
       setPreviewSolutionCode(solutionCode);
+      setPreviewSolutionMeta({ explanation: solutionExplanation, time: timeComplexity, space: spaceComplexity });
     } catch (err: any) {
       toast.error(`Failed to load problem: ${err.message}`);
       setPreviewOpen(false);
@@ -221,9 +243,9 @@ export function AdminProblemManager() {
     focusSection: "problem" | "solution" = "problem",
   ) => {
     try {
-      const { fullProblem, solutionCode } = await loadProblemEditorData(Number(problem.id));
+      const { fullProblem, solutionCode, solutionExplanation, timeComplexity, spaceComplexity } = await loadProblemEditorData(Number(problem.id));
       setEditingProblem(fullProblem);
-      setForm(buildFormFromProblem(fullProblem, solutionCode));
+      setForm(buildFormFromProblem(fullProblem, solutionCode, solutionExplanation, timeComplexity, spaceComplexity));
       setEditFocusSection(focusSection);
       setPreviewOpen(false);
       setDialogOpen(true);
@@ -242,11 +264,37 @@ export function AdminProblemManager() {
   const handleSave = async () => {
     const isSolutionOnlyEdit = Boolean(editingProblem) && editFocusSection === "solution";
 
-    if (!isSolutionOnlyEdit && (!form.title.trim() || !form.algorithm.trim())) {
-      toast.error("Title and algorithm are required");
-      return;
+    if (!isSolutionOnlyEdit) {
+      if (!form.title.trim() || !form.algorithm.trim()) {
+        toast.error("Title and algorithm are required");
+        return;
+      }
+      if (!form.description.trim()) {
+        toast.error("Description is required");
+        return;
+      }
+      if (!form.starterCode.trim()) {
+        toast.error("Starter code is required");
+        return;
+      }
+      const hasCompleteExample = form.examples.some(
+        (e) => e.input.trim() && e.output.trim(),
+      );
+      if (!hasCompleteExample) {
+        toast.error("At least one example with both input and output is required");
+        return;
+      }
+      const titleLower = form.title.trim().toLowerCase();
+      const isDuplicate = problems.some(
+        (p) => p.title.toLowerCase() === titleLower && p.id !== editingProblem?.id,
+      );
+      if (isDuplicate) {
+        toast.error("A problem with this title already exists");
+        return;
+      }
     }
 
+    setSaving(true);
     try {
       let problemId = editingProblem ? Number(editingProblem.id) : null;
       let payload: ProblemPayload | null = null;
@@ -274,7 +322,7 @@ export function AdminProblemManager() {
       }
 
       if (problemId) {
-        await saveSolution(problemId, form.solutionCode);
+        await saveSolution(problemId, form.solutionCode, form.solutionExplanation, form.timeComplexity, form.spaceComplexity);
       }
 
       toast.success(
@@ -293,17 +341,20 @@ export function AdminProblemManager() {
             description: payload.description,
             estimateTime: payload.estimateTimeBaseline ?? undefined,
             starterCode: payload.starterCode,
-            algorithm: payload.algorithms,
+            algorithm: form.algorithm,
             examples: payload.examples,
             constraints: payload.constraints,
           });
         }
         setPreviewSolutionCode(form.solutionCode.trim());
+        setPreviewSolutionMeta({ explanation: form.solutionExplanation, time: form.timeComplexity, space: form.spaceComplexity });
       }
       setDialogOpen(false);
       await refreshProblems();
     } catch (err: any) {
       toast.error(`Save failed: ${err.message}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -336,6 +387,18 @@ export function AdminProblemManager() {
 
   const handleTogglePublished = async (problem: Problem) => {
     const nextPublishedState = !problem.isPublished;
+    if (nextPublishedState) {
+      try {
+        const sol = await fetchSolution(Number(problem.id));
+        if (!sol?.sDescription?.trim()) {
+          toast.error("Add a solution before publishing this problem.");
+          return;
+        }
+      } catch {
+        toast.error("This problem has no solution. Add a solution before publishing.");
+        return;
+      }
+    }
     try {
       await setProblemPublishedApi(Number(problem.id), nextPublishedState);
       setProblems((prev) =>
@@ -345,7 +408,12 @@ export function AdminProblemManager() {
       );
       toast.success(nextPublishedState ? "Problem published" : "Problem unpublished");
     } catch (err: any) {
-      toast.error(`Publish update failed: ${err.message}`);
+      const msg = err.message?.toLowerCase() || "";
+      if (msg.includes("solution") || msg.includes("publish")) {
+        toast.error("Cannot publish: this problem requires a non-empty solution.");
+      } else {
+        toast.error(`Publish update failed: ${err.message}`);
+      }
     }
   };
 
@@ -367,9 +435,7 @@ export function AdminProblemManager() {
   const algorithmOptions = Array.from(
     new Set([
       ...dbAlgorithms,
-      ...problems.flatMap((p) =>
-        Array.isArray(p.algorithm) ? p.algorithm : [String(p.algorithm)]
-      ),
+      ...problems.map((p) => p.algorithm).filter(Boolean),
       ...customAlgorithms,
     ])
   ).sort();
@@ -382,7 +448,7 @@ export function AdminProblemManager() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/admin")}
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
               Back
@@ -431,14 +497,10 @@ export function AdminProblemManager() {
                     {problem.difficulty}
                   </Badge>
                 </TableCell>
-                {/* Show algorithm tags — API returns an array */}
                 <TableCell>
-                  {(Array.isArray(problem.algorithm) ? problem.algorithm : [problem.algorithm])
-                    .map((algo) => (
-                      <span key={algo} className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md mr-1">
-                        {algo}
-                      </span>
-                    ))}
+                  <span className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md">
+                    {problem.algorithm}
+                  </span>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -532,15 +594,10 @@ export function AdminProblemManager() {
                     <p className="text-xs uppercase tracking-wide text-neutral-500">
                       Algorithm
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {previewProblem.algorithm.map((algo) => (
-                        <span
-                          key={algo}
-                          className="rounded-md bg-white px-2 py-1 text-xs text-neutral-600 border border-neutral-200"
-                        >
-                          {algo}
-                        </span>
-                      ))}
+                    <div className="mt-2">
+                      <span className="rounded-md bg-white px-2 py-1 text-xs text-neutral-600 border border-neutral-200">
+                        {previewProblem.algorithm}
+                      </span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -652,6 +709,33 @@ export function AdminProblemManager() {
                     {previewSolutionCode || "No solution added yet."}
                   </code>
                 </pre>
+
+                {(previewSolutionMeta.explanation || previewSolutionMeta.time || previewSolutionMeta.space) && (
+                  <div className="mt-3 space-y-2 text-sm">
+                    {previewSolutionMeta.explanation && (
+                      <div>
+                        <span className="font-medium text-neutral-700">Explanation: </span>
+                        <span className="text-neutral-600">{previewSolutionMeta.explanation}</span>
+                      </div>
+                    )}
+                    {(previewSolutionMeta.time || previewSolutionMeta.space) && (
+                      <div className="flex gap-4">
+                        {previewSolutionMeta.time && (
+                          <span className="text-neutral-600">
+                            <span className="font-medium text-neutral-700">Time: </span>
+                            {previewSolutionMeta.time}
+                          </span>
+                        )}
+                        {previewSolutionMeta.space && (
+                          <span className="text-neutral-600">
+                            <span className="font-medium text-neutral-700">Space: </span>
+                            {previewSolutionMeta.space}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
             </div>
           ) : null}
@@ -967,16 +1051,57 @@ export function AdminProblemManager() {
                   placeholder="def solution(...):\n    ..."
                   className="min-h-[180px] font-mono text-sm"
                 />
+
+                <div className="mt-4">
+                  <Label htmlFor="solutionExplanation">Explanation</Label>
+                  <Textarea
+                    id="solutionExplanation"
+                    value={form.solutionExplanation}
+                    onChange={(e) =>
+                      setForm({ ...form, solutionExplanation: e.target.value })
+                    }
+                    placeholder="Explain the approach and reasoning..."
+                    className="min-h-[80px] text-sm mt-1"
+                  />
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="timeComplexity">Time Complexity</Label>
+                    <Input
+                      id="timeComplexity"
+                      value={form.timeComplexity}
+                      onChange={(e) =>
+                        setForm({ ...form, timeComplexity: e.target.value })
+                      }
+                      placeholder="e.g. O(n log n)"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="spaceComplexity">Space Complexity</Label>
+                    <Input
+                      id="spaceComplexity"
+                      value={form.spaceComplexity}
+                      onChange={(e) =>
+                        setForm({ ...form, spaceComplexity: e.target.value })
+                      }
+                      placeholder="e.g. O(n)"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
               {editingProblem ? "Save Changes" : "Add Problem"}
             </Button>
           </DialogFooter>
@@ -984,7 +1109,13 @@ export function AdminProblemManager() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) setDeletingProblemId(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Problem</AlertDialogTitle>

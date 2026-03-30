@@ -1,17 +1,14 @@
-import { CompletedProblem, TodoItem, StudyPlan, Problem, AppUser } from '../types';
+import { CompletedProblem, TodoItem, Problem, AppUser } from '../types';
 import { problems as defaultProblems } from '../data/problems';
 
 const STORAGE_KEYS = {
   COMPLETED: 'pythonpractice_completed',
   TODO: 'pythonpractice_todo',
-  TODO_NOTES: 'pythonpractice_todo_notes',
-  STUDY_PLANS: 'pythonpractice_study_plans',
   CODE_CACHE: 'pythonpractice_code_cache',
   USER_ROLE: 'pythonpractice_user_role',
   PROBLEMS: 'pythonpractice_problems',
   USERS: 'pythonpractice_users',
   CURRENT_USER: 'pythonpractice_current_user',
-  ANSWER_NOTES: 'pythonpractice_answer_notes',
 };
 
 const defaultUsers: AppUser[] = [
@@ -45,12 +42,6 @@ export function saveCompletedProblem(completed: CompletedProblem): void {
   localStorage.setItem(STORAGE_KEYS.COMPLETED, JSON.stringify(filtered));
 }
 
-export function removeCompletedProblem(problemId: string): void {
-  const existing = getCompletedProblems();
-  const filtered = existing.filter((item) => item.problemId !== problemId);
-  localStorage.setItem(STORAGE_KEYS.COMPLETED, JSON.stringify(filtered));
-}
-
 // Todo Items
 export function getTodoItems(): TodoItem[] {
   const data = localStorage.getItem(STORAGE_KEYS.TODO);
@@ -68,77 +59,6 @@ export function addTodoItem(item: TodoItem): void {
   if (existing.some((t) => t.problemId === item.problemId)) return;
   existing.push(item);
   localStorage.setItem(STORAGE_KEYS.TODO, JSON.stringify(existing));
-}
-
-export function removeTodoItem(problemId: string): void {
-  const existing = getTodoItems();
-  const filtered = existing.filter((item) => item.problemId !== problemId);
-  localStorage.setItem(STORAGE_KEYS.TODO, JSON.stringify(filtered));
-}
-
-export function updateTodoPriority(problemId: string, priority: 'low' | 'medium' | 'high'): void {
-  const existing = getTodoItems();
-  const updated = existing.map((item) =>
-    item.problemId === problemId ? { ...item, priority } : item
-  );
-  localStorage.setItem(STORAGE_KEYS.TODO, JSON.stringify(updated));
-}
-
-export function updateTodoNotes(problemId: string, notes: string): void {
-  const existing = getTodoItems();
-  const updated = existing.map((item) =>
-    item.problemId === problemId ? { ...item, notes } : item
-  );
-  localStorage.setItem(STORAGE_KEYS.TODO, JSON.stringify(updated));
-}
-
-// Study Plans
-export function getStudyPlans(): StudyPlan[] {
-  const data = localStorage.getItem(STORAGE_KEYS.STUDY_PLANS);
-  if (!data) return [];
-  const parsed = JSON.parse(data);
-  return parsed.map((plan: any) => ({
-    planId: plan.planId,
-    planName: plan.planName,
-    problems: plan.problems,
-    createdAt: new Date(plan.createdAt),
-    timeAvailable: plan.timeAvailable,
-    isAccepted: plan.isAccepted,
-  }));
-}
-
-export function saveStudyPlan(plan: StudyPlan): void {
-  const existing = getStudyPlans();
-  existing.push(plan);
-  localStorage.setItem(STORAGE_KEYS.STUDY_PLANS, JSON.stringify(existing));
-}
-
-// Answer Notes
-export function getAnswerNote(problemId: string): string {
-  const data = localStorage.getItem(STORAGE_KEYS.ANSWER_NOTES);
-  const notes: Record<string, string> = data ? JSON.parse(data) : {};
-  return notes[problemId] || "";
-}
-
-export function saveAnswerNote(problemId: string, note: string): void {
-  const data = localStorage.getItem(STORAGE_KEYS.ANSWER_NOTES);
-  const notes: Record<string, string> = data ? JSON.parse(data) : {};
-  notes[problemId] = note;
-  localStorage.setItem(STORAGE_KEYS.ANSWER_NOTES, JSON.stringify(notes));
-}
-
-// Todo Notes (local annotations, keyed by problem_id string)
-export function getTodoNote(problemId: string): string {
-  const data = localStorage.getItem(STORAGE_KEYS.TODO_NOTES);
-  const notes: Record<string, string> = data ? JSON.parse(data) : {};
-  return notes[problemId] || "";
-}
-
-export function saveTodoNote(problemId: string, note: string): void {
-  const data = localStorage.getItem(STORAGE_KEYS.TODO_NOTES);
-  const notes: Record<string, string> = data ? JSON.parse(data) : {};
-  notes[problemId] = note;
-  localStorage.setItem(STORAGE_KEYS.TODO_NOTES, JSON.stringify(notes));
 }
 
 // Code Cache (for unsaved work)
@@ -179,25 +99,10 @@ export function getProblems(): Problem[] {
   return JSON.parse(data);
 }
 
-export function addProblem(problem: Omit<Problem, 'id'>): Problem {
-  const existing = getProblems();
-  const maxId = existing.reduce((max, p) => Math.max(max, parseInt(p.id, 10) || 0), 0);
-  const newProblem: Problem = { ...problem, id: String(maxId + 1) };
-  existing.push(newProblem);
-  localStorage.setItem(STORAGE_KEYS.PROBLEMS, JSON.stringify(existing));
-  return newProblem;
-}
-
 export function updateProblem(problem: Problem): void {
   const existing = getProblems();
   const updated = existing.map((p) => (p.id === problem.id ? problem : p));
   localStorage.setItem(STORAGE_KEYS.PROBLEMS, JSON.stringify(updated));
-}
-
-export function deleteProblem(problemId: string): void {
-  const existing = getProblems();
-  const filtered = existing.filter((p) => p.id !== problemId);
-  localStorage.setItem(STORAGE_KEYS.PROBLEMS, JSON.stringify(filtered));
 }
 
 // Users
