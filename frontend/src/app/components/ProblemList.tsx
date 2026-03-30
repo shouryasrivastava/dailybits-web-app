@@ -63,7 +63,7 @@ export function ProblemList() {
   }, []);
 
   const categories = useMemo(() => {
-    const cats = new Set(problems.flatMap((p) => p.algorithm));
+    const cats = new Set(problems.map((p) => p.algorithm).filter(Boolean));
     return Array.from(cats).sort();
   }, [problems]);
 
@@ -71,11 +71,11 @@ export function ProblemList() {
     return problems.filter((problem) => {
       const matchesSearch =
         problem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        problem.algorithm.some((a) => a.toLowerCase().includes(searchQuery.toLowerCase()));
+        problem.algorithm.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesDifficulty =
         difficultyFilter === "all" || problem.difficulty === difficultyFilter;
       const matchesAlgorithm =
-        algorithmFilter === "all" || problem.algorithm.includes(algorithmFilter);
+        algorithmFilter === "all" || problem.algorithm === algorithmFilter;
       return matchesSearch && matchesDifficulty && matchesAlgorithm;
     });
   }, [problems, searchQuery, difficultyFilter, algorithmFilter]);
@@ -84,9 +84,13 @@ export function ProblemList() {
     e.preventDefault();
     e.stopPropagation();
     try {
-      await addTodoApi(ACCOUNT_NUMBER, Number(problemId));
-      setTodoIds((prev) => new Set([...prev, problemId]));
-      toast.success("Added to todo list!");
+      const res = await addTodoApi(ACCOUNT_NUMBER, Number(problemId));
+      if (res.already_exists) {
+        toast.info("Already in your todo list");
+      } else {
+        setTodoIds((prev) => new Set([...prev, problemId]));
+        toast.success("Added to todo list!");
+      }
     } catch {
       toast.error("Failed to add to todo list");
     }
@@ -196,14 +200,9 @@ export function ProblemList() {
                         {problem.description}
                       </p>
                       <div className="flex items-center gap-2 flex-wrap">
-                        {problem.algorithm.map((alg) => (
-                          <span
-                            key={alg}
-                            className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md"
-                          >
-                            {alg}
-                          </span>
-                        ))}
+                        <span className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md">
+                          {problem.algorithm}
+                        </span>
                       </div>
                     </div>
 

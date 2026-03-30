@@ -63,7 +63,7 @@ function localFallbackPlan(userMessage: string): GeneratedPlan {
       problem_id: Number(p.id),
       problem_title: p.title,
       difficulty_level: p.difficulty,
-      algorithms: Array.isArray(p.algorithm) ? p.algorithm : [p.algorithm],
+      algorithms: [p.algorithm],
       estimate_time: 20,
     })),
   };
@@ -117,7 +117,6 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
           addTodoItem({
             problemId: String(p.problem_id),
             addedAt: new Date(),
-            priority: "medium",
           }),
         );
       }
@@ -127,7 +126,6 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
         addTodoItem({
           problemId: String(p.problem_id),
           addedAt: new Date(),
-          priority: "medium",
         }),
       );
       toast.success("Study plan saved locally to your todo list!");

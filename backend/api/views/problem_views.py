@@ -1,8 +1,6 @@
 from django.db import connection
 from django.http import JsonResponse
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view
 
 # List all problems
 @api_view(['GET'])
@@ -72,6 +70,15 @@ def submit_problem(request, pid):
         return JsonResponse({"error": "Missing required fields"}, status=400)
 
     with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT is_published FROM problem WHERE problem_id = %s", [pid]
+        )
+        row = cursor.fetchone()
+        if not row:
+            return JsonResponse({"error": "Problem not found"}, status=404)
+        if not row[0]:
+            return JsonResponse({"error": "Cannot submit to an unpublished problem"}, status=403)
+
         cursor.execute("""
             INSERT INTO submission
             (problem_id, account_number, submitted_code, is_correct)
@@ -79,107 +86,3 @@ def submit_problem(request, pid):
         """, [pid, account_number, submission_text, is_correct])
 
     return JsonResponse({"success": True})
-
-
-#add problem
-@api_view(["POST"])
-def add_problem(request):
-    """
-    Add a new problem into PROBLEM table
-    Required: tag_id, problem_title, problem_description
-    Optional: solution_id, review_status
-    """
-    data = request.data
-
-    tag_id = data.get("tag_id")
-    title = data.get("problem_title")
-    description = data.get("problem_description")
-    solution_id = data.get("solution_id")  # can be None
-    review_status = data.get("review_status", False)
-
-    if not tag_id:
-        return JsonResponse({"error": "Missing tag_id"}, status=400)
-    if not title:
-        return JsonResponse({"error": "Missing title"}, status=400)
-    if not description:
-        return JsonResponse({"error": "Missing description"}, status=400)
- 
-    # if not tag_id or not title or not description:
-    #     return JsonResponse({"error": "Missing required fields"}, status=400)
-
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            INSERT INTO PROBLEM (Tag_ID, Problem_title, Problem_description, Review_status, Solution_ID)
-            VALUES (%s, %s, %s, %s, %s)
-        """, [tag_id, title, description, review_status, solution_id])
-
-        cursor.execute("SELECT lastval()")
-        new_id = cursor.fetchone()[0] # type: ignore
-
-    return JsonResponse({"success": True, "problem_id": new_id})
-
-
-#delete problem
-@api_view(["DELETE"])
-def delete_problem(request, pid):
-    with connection.cursor() as cursor:
-        cursor.execute("DELETE FROM PROBLEM WHERE Problem_ID = %s", [pid])
-        deleted = cursor.rowcount
-
-    if deleted == 0:
-        return JsonResponse({"error": "Problem not found"}, status=404)
-
-    return JsonResponse({"success": True, "deleted_id": pid})
-
-
-@api_view(["PUT"])
-def update_problem(request, pid):
-    """
-    Update SQL problem fields from frontend
-    Compatible with ProblemEditor + ProblemCreation
-    """
-    data = request.data
-
-    title = data.get("title")
-    description = data.get("description")
-    tag_id = data.get("tagId")
-    solution_id = data.get("solutionId")  # new optional field
-
-    if not title or not description or not tag_id:
-        return JsonResponse({"error": "Missing fields"}, status=400)
-
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            UPDATE PROBLEM
-            SET 
-                Problem_title = %s,
-                Problem_description = %s,
-                Tag_ID = %s,
-                Solution_ID = %s
-            WHERE Problem_ID = %s
-        """, [title, description, tag_id, solution_id, pid])
-
-        updated = cursor.rowcount
-
-    if updated == 0:
-        return JsonResponse({"error": "Problem not found"}, status=404)
-
-    return JsonResponse({"success": True, "updated_id": pid})
-
-
-@api_view(['POST'])
-def publish_problem(request, pid):
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                UPDATE PROBLEM
-                SET Review_status = 1
-                WHERE Problem_ID = %s
-            """, [pid])
-
-        return JsonResponse({"success": True})
-
-    except Exception as e:
-        # print the error so we know why status=500
-        print("Publish error:", str(e))
-        return JsonResponse({"error": str(e)}, status=500)

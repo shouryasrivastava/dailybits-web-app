@@ -55,16 +55,20 @@ export function AdminUserManager() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
-  // Redirect non-admin users back to the admin landing page
-  if (userRole !== "administrator") {
-    navigate("/admin");
-    return null;
-  }
+  // Loading state for toggle-admin to prevent double-clicks
+  const [togglingUserId, setTogglingUserId] = useState<string | null>(null);
 
-  // Fetch all users from the backend on mount
+  // Redirect non-admins and load data on mount — single effect keeps hook
+  // call count consistent regardless of userRole.
   useEffect(() => {
+    if (userRole !== "administrator") {
+      navigate("/admin");
+      return;
+    }
     loadUsers();
-  }, []);
+  }, [navigate]);
+
+  if (userRole !== "administrator") return null;
 
   /** Fetch user list from the backend and update local state */
   const loadUsers = async () => {
@@ -87,13 +91,15 @@ export function AdminUserManager() {
   /** Toggle a user's admin status via the backend API */
   const handleToggleAdmin = async (user: AppUser) => {
     const newAdminStatus = !user.isAdmin;
+    setTogglingUserId(user.id);
     try {
       await toggleUserAdmin(Number(user.id), newAdminStatus);
       const updatedUser = { ...user, isAdmin: newAdminStatus };
       updateUser(updatedUser);
 
       const currentUser = getCurrentUser();
-      if (currentUser.id === user.id) {
+      const isOwnAccount = currentUser.id === user.id;
+      if (isOwnAccount) {
         setCurrentUser({ ...currentUser, isAdmin: newAdminStatus });
         setUserRole(newAdminStatus ? "administrator" : "user");
       }
@@ -109,8 +115,15 @@ export function AdminUserManager() {
           u.id === user.id ? updatedUser : u,
         ),
       );
+
+      // If own admin was revoked, redirect away from admin pages
+      if (isOwnAccount && !newAdminStatus) {
+        navigate("/");
+      }
     } catch (err: any) {
       toast.error(`Failed to update admin status: ${err.message}`);
+    } finally {
+      setTogglingUserId(null);
     }
   };
 
@@ -208,13 +221,16 @@ export function AdminUserManager() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleToggleAdmin(user)}
+                        disabled={togglingUserId === user.id}
                         className={
                           user.isAdmin
                             ? "text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                             : "text-slate-600 hover:text-slate-700 hover:bg-slate-50"
                         }
                       >
-                        {user.isAdmin ? (
+                        {togglingUserId === user.id ? (
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        ) : user.isAdmin ? (
                           <>
                             <ShieldOff className="w-3 h-3 mr-1" />
                             Revoke Admin
@@ -251,7 +267,13 @@ export function AdminUserManager() {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) setDeletingUserId(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>

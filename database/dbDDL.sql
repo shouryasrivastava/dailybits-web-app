@@ -61,7 +61,6 @@ CREATE TABLE solution (
     solution_explanation TEXT,
     time_complexity     VARCHAR(50),
     space_complexity    VARCHAR(50),
-    is_published        BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (problem_id) REFERENCES problem (problem_id) ON DELETE CASCADE
 );
 
@@ -133,21 +132,6 @@ CREATE TABLE study_plan_problems (
     PRIMARY KEY (plan_id, problem_id),
     FOREIGN KEY (plan_id) REFERENCES study_plan (plan_id) ON DELETE CASCADE,
     FOREIGN KEY (problem_id) REFERENCES problem (problem_id) ON DELETE CASCADE
-);
-
--- Algorithm selections for study plan
-CREATE TABLE study_plan_algorithm (
-    plan_id      INT REFERENCES study_plan (plan_id) ON DELETE CASCADE,
-    algorithm_id INT REFERENCES algorithm (algorithm_id) ON DELETE CASCADE,
-    PRIMARY KEY (plan_id, algorithm_id)
-);
-
--- Difficulty selections for study plan
-CREATE TABLE study_plan_difficulty (
-    plan_id INT REFERENCES study_plan (plan_id) ON DELETE CASCADE,
-    difficulty_level VARCHAR(10) NOT NULL
-                         CHECK (difficulty_level IN ('Easy', 'Medium', 'Hard')),
-    PRIMARY KEY (plan_id, difficulty_level)
 );
 
 -- Chat Query Table (for AI assistant interactions)
@@ -291,6 +275,7 @@ SELECT
     p.problem_description,
     p.difficulty_level,
     t.added_at,
+    t.source,
     array_agg(a.algorithm_name) AS algorithms,
     EXISTS (
         SELECT 1 FROM submission s
@@ -302,6 +287,7 @@ FROM todo_item t
 JOIN problem p             ON t.problem_id   = p.problem_id
 JOIN problem_algorithm pa  ON p.problem_id   = pa.problem_id
 JOIN algorithm a           ON pa.algorithm_id = a.algorithm_id
+WHERE p.is_published = TRUE
 GROUP BY
     t.todo_id,
     t.account_number,
@@ -309,7 +295,8 @@ GROUP BY
     p.problem_title,
     p.problem_description,
     p.difficulty_level,
-    t.added_at;
+    t.added_at,
+    t.source;
 
 -- Single Problem View
 -- Show single problem in details 
@@ -347,7 +334,8 @@ JOIN (
            )) AS examples
     FROM problem_example
     GROUP BY problem_id
-) ex ON p.problem_id = ex.problem_id;
+) ex ON p.problem_id = ex.problem_id
+WHERE p.is_published = TRUE;
 
 -- ============================================
 -- ANALYTICS VIEWS
@@ -391,6 +379,7 @@ SELECT
 FROM account a
 LEFT JOIN submission s ON a.account_number = s.account_number
 LEFT JOIN problem p    ON s.problem_id = p.problem_id
+                      AND p.is_published = TRUE
 GROUP BY a.account_number;
 
 -- User Recent Activity View
@@ -406,6 +395,7 @@ SELECT DISTINCT ON (s.account_number, s.problem_id)
     s.is_correct
 FROM submission s
 JOIN problem p ON s.problem_id = p.problem_id
+WHERE p.is_published = TRUE
 ORDER BY s.account_number, s.problem_id, s.submitted_at DESC;
 
 -- User Algorithm Progress View
@@ -475,32 +465,7 @@ WHEN (OLD.note_content IS DISTINCT FROM NEW.note_content)
 EXECUTE FUNCTION refresh_study_note_updated_at();
 
 -- Publishing Validation
--- Trigger 1: Prevent publishing a solution if its problem is not published
-CREATE OR REPLACE FUNCTION check_solution_publish()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_problem_published BOOLEAN;
-BEGIN
-    IF NEW.is_published = TRUE THEN
-        SELECT is_published INTO v_problem_published
-        FROM problem
-        WHERE problem_id = NEW.problem_id;
-
-        IF v_problem_published = FALSE THEN
-            RAISE EXCEPTION 'Cannot publish solution: problem % is not published yet', 
-                NEW.problem_id;
-        END IF;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_check_solution_publish
-BEFORE UPDATE ON solution
-FOR EACH ROW
-EXECUTE FUNCTION check_solution_publish();
-
--- Trigger 2: Prevent publishing a problem if it has no solution
+-- Prevent publishing a problem if it has no solution
 CREATE OR REPLACE FUNCTION check_problem_publish()
 RETURNS TRIGGER AS $$
 DECLARE
