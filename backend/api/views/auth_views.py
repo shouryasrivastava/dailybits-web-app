@@ -22,6 +22,10 @@ from jwt import PyJWKClient
 
 
 def get_user_from_token(request):
+    """
+    Return token from request
+    based on Supabase access token.
+    """
     auth_header = request.headers.get("Authorization")
 
     if not auth_header:
@@ -34,7 +38,7 @@ def get_user_from_token(request):
     token = parts[1]
 
     try:
-        # 先读取 payload，不验签，只为了拿 iss
+        # read payload
         unverified_payload = jwt.decode(
             token,
             options={"verify_signature": False},
