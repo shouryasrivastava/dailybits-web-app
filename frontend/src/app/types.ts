@@ -31,9 +31,8 @@ export interface TodoItem {
   problemId: string;
   addedAt: Date;
   todoId?: number;
-  source?: 'manual' | 'study_plan';
+  source?: "manual" | "study_plan";
 }
-
 
 export interface UserRole {
   role: "user" | "administrator";
@@ -41,6 +40,7 @@ export interface UserRole {
 
 export interface AppUser {
   id: string;
+  accountNumber: number;
   email: string;
   firstName: string;
   lastName: string;
@@ -48,4 +48,3 @@ export interface AppUser {
   isAdmin: boolean;
   isStudent?: boolean;
 }
-

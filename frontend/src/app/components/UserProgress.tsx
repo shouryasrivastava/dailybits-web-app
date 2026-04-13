@@ -5,6 +5,7 @@ import {
   getProblems,
   getCompletedProblems,
   getTodoItems,
+  getCurrentUser,
 } from "../utils/storage";
 import {
   fetchUserProgress,
@@ -19,7 +20,7 @@ import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { Badge } from "./ui/badge";
 
-const ACCOUNT_NUMBER = 1;
+// const ACCOUNT_NUMBER = 1;
 
 function getDifficultyColor(difficulty: string) {
   switch (difficulty) {
@@ -95,6 +96,10 @@ function getLocalFallbackProgress() {
 }
 
 export function UserProgress() {
+  const currentUser = getCurrentUser();
+  const token = localStorage.getItem("access_token");
+  const accountNumber = currentUser?.accountNumber;
+
   const [progressData, setProgressData] = useState<UserProgressData | null>(
     null,
   );
@@ -110,11 +115,22 @@ export function UserProgress() {
     let cancelled = false;
 
     async function load() {
+      // not logged in
+      if (!token || !accountNumber) {
+        if (!cancelled) {
+          setLoading(false);
+          setProgressData(null);
+          setRecentActivity([]);
+          setAlgorithmData([]);
+        }
+        return;
+      }
+
       try {
         const [progress, recent, algorithms] = await Promise.all([
-          fetchUserProgress(ACCOUNT_NUMBER),
-          fetchRecentActivity(ACCOUNT_NUMBER),
-          fetchAlgorithmProgress(ACCOUNT_NUMBER),
+          fetchUserProgress(accountNumber),
+          fetchRecentActivity(accountNumber),
+          fetchAlgorithmProgress(accountNumber),
         ]);
         if (!cancelled) {
           setProgressData(progress);
@@ -122,6 +138,7 @@ export function UserProgress() {
           setAlgorithmData(algorithms);
         }
       } catch {
+        // fallback to local data if backend fails
         if (!cancelled) {
           const fallback = getLocalFallbackProgress();
           setProgressData(fallback.progress);
@@ -137,7 +154,15 @@ export function UserProgress() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [token, accountNumber]);
+
+  if (!token || !accountNumber) {
+    return (
+      <div className="h-full flex items-center justify-center bg-neutral-50">
+        <p className="text-neutral-500">Please login first.</p>
+      </div>
+    );
+  }
 
   if (loading || !progressData) {
     return (

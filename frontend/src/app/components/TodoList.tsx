@@ -6,26 +6,77 @@ import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { StudyPlanChat } from "./StudyPlanChat";
 import { fetchTodoItemsApi, removeTodoApi, ApiTodoItem } from "../utils/api";
-
-const ACCOUNT_NUMBER = 1;
+import { getCurrentUser } from "../utils/storage";
 
 export function TodoList() {
   const [todoItems, setTodoItems] = useState<ApiTodoItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const currentUser = getCurrentUser();
+  const token = localStorage.getItem("access_token");
+  const accountNumber = currentUser?.accountNumber;
+
+  // const ACCOUNT_NUMBER = 1;
+
   useEffect(() => {
-    fetchTodoItemsApi(ACCOUNT_NUMBER)
-      .then((res) => setTodoItems(res.results))
-      .catch(() => toast.error("Failed to load todo list"))
-      .finally(() => setLoading(false));
-  }, []);
+    if (!token || !accountNumber) {
+      setTodoItems([]);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
+    fetchTodoItemsApi(accountNumber)
+      .then((res) => {
+        if (!cancelled) {
+          setTodoItems(res.results);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          toast.error("Failed to load todo list");
+          setTodoItems([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, accountNumber]);
 
   const handleRemove = async (item: ApiTodoItem) => {
+    if (!accountNumber) {
+      toast.error("Please login first");
+      return;
+    }
+
     try {
-      await removeTodoApi(ACCOUNT_NUMBER, item.problem_id);
+      await removeTodoApi(accountNumber, item.problem_id);
       setTodoItems((prev) => prev.filter((t) => t.todo_id !== item.todo_id));
       toast.success("Removed from todo list");
     } catch {
       toast.error("Failed to remove from todo list");
+    }
+  };
+
+  const refreshTodoList = async () => {
+    if (!accountNumber) {
+      toast.error("Please login first");
+      return;
+    }
+
+    try {
+      const res = await fetchTodoItemsApi(accountNumber);
+      setTodoItems(res.results);
+    } catch {
+      toast.error("Failed to refresh todo list");
     }
   };
 
@@ -56,7 +107,11 @@ export function TodoList() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {loading ? (
+          {!token || !accountNumber ? (
+            <div className="text-center py-12">
+              <p className="text-neutral-500 mb-4">Please login first</p>
+            </div>
+          ) : loading ? (
             <div className="text-center py-12">
               <p className="text-neutral-500">Loading...</p>
             </div>
@@ -84,6 +139,7 @@ export function TodoList() {
                           >
                             {item.problem_title}
                           </Link>
+
                           <Badge
                             variant="outline"
                             className={getDifficultyColor(
@@ -92,6 +148,7 @@ export function TodoList() {
                           >
                             {item.difficulty_level}
                           </Badge>
+
                           {item.source === "study_plan" && (
                             <Badge
                               variant="outline"
@@ -101,9 +158,11 @@ export function TodoList() {
                             </Badge>
                           )}
                         </div>
+
                         <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
                           {item.problem_description}
                         </p>
+
                         <div className="flex items-center gap-2 flex-wrap">
                           {item.algorithms.map((alg) => (
                             <span
@@ -135,13 +194,7 @@ export function TodoList() {
 
       {/* Study Plan Chat */}
       <div className="w-[34rem] min-w-[34rem] border-l border-neutral-200 xl:w-[38rem] xl:min-w-[38rem]">
-        <StudyPlanChat
-          onPlanAccepted={() => {
-            fetchTodoItemsApi(ACCOUNT_NUMBER)
-              .then((res) => setTodoItems(res.results))
-              .catch(() => toast.error("Failed to refresh todo list"));
-          }}
-        />
+        <StudyPlanChat onPlanAccepted={refreshTodoList} />
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { supabase } from "../utils/supabase";
-import { saveToken } from "../utils/auth";
+import { saveToken, saveUser } from "../utils/auth";
+import { setCurrentUser } from "../utils/storage";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -16,25 +17,61 @@ export default function Login() {
     setLoading(true);
     setMessage("");
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // 1. Supabase login
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    setLoading(false);
+      if (error) {
+        setMessage(error.message);
+        setLoading(false);
+        return;
+      }
 
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
+      const token = data.session?.access_token;
 
-    const token = data.session?.access_token;
-    if (token) {
+      if (!token) {
+        setMessage("Login failed: missing access token");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Save token
       saveToken(token);
-    }
 
-    setMessage("Login successful");
-    navigate("/todo");
+      // 3. Request Django /auth/me/
+      const res = await fetch("http://127.0.0.1:8000/auth/me/", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const userData = await res.json();
+
+      if (!res.ok || !userData.success) {
+        setMessage(userData.message || "Failed to load user profile");
+        setLoading(false);
+        return;
+      }
+
+      // 4. Save user
+      saveUser(userData);
+      setCurrentUser(userData);
+
+      setMessage("Login successful");
+      setLoading(false);
+
+      // 5. Redirect
+      navigate("/todo");
+    } catch (err) {
+      console.error(err);
+      setMessage("Something went wrong during login");
+      setLoading(false);
+    }
   };
 
   return (
@@ -76,7 +113,6 @@ export default function Login() {
             {loading ? "Logging in..." : "Login"}
           </button>
 
-          {/* Signup Link*/}
           <p className="mt-4 text-center text-sm">
             Don't have an account?
             <span

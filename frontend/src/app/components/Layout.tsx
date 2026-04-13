@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import {
   Code2,
   ListTodo,
@@ -15,10 +15,10 @@ import { cn } from "./ui/utils";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { getCurrentUser, getUserRole } from "../utils/storage";
-import { useNavigate } from "react-router";
+import { getCurrentUser, getUserRole, logout } from "../utils/storage";
 import { supabase } from "../utils/supabase";
 
+/** Sidebar navigation items */
 const navigation = [
   { name: "Problems", href: "/problems", icon: BookOpen },
   { name: "Todo List", href: "/todo", icon: ListTodo },
@@ -29,17 +29,21 @@ const navigation = [
 
 export function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
   const userRole = getUserRole();
   const currentUser = getCurrentUser();
-  const navigate = useNavigate();
+  const token = localStorage.getItem("access_token");
 
+  /** Handle user logout */
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    localStorage.removeItem("token");
-    navigate("/login");
+    await supabase.auth.signOut(); // Supabase logout
+    logout(); // clear local storage
+    navigate("/login"); // redirect to login page
   };
 
+  /** Add admin page if user is admin */
   const fullNavigation =
     userRole === "administrator"
       ? [...navigation, { name: "Admin", href: "/admin", icon: Shield }]
@@ -54,11 +58,13 @@ export function Layout() {
           isCollapsed ? "w-20" : "w-64",
         )}
       >
+        {/* Logo */}
         <div className="p-6 border-b border-neutral-200">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center">
               <Code2 className="w-6 h-6 text-white" />
             </div>
+
             {!isCollapsed && (
               <div>
                 <h1 className="font-semibold text-neutral-900">DailyBits</h1>
@@ -70,23 +76,25 @@ export function Layout() {
           </Link>
         </div>
 
+        {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
           {fullNavigation.map((item) => {
             const isActive = location.pathname === item.href;
+
             return (
               <Link
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                  "flex items-center gap-3 px-4 py-3 rounded-lg",
                   isActive
                     ? "bg-slate-50 text-slate-800"
                     : "text-neutral-600 hover:bg-neutral-100",
                   isCollapsed && "justify-center",
                 )}
-                title={isCollapsed ? item.name : undefined}
               >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
+                <item.icon className="w-5 h-5" />
+
                 {!isCollapsed && (
                   <span className="font-medium">{item.name}</span>
                 )}
@@ -95,57 +103,104 @@ export function Layout() {
           })}
         </nav>
 
-        {/* User profile widget */}
+        {/* User section */}
         <div
           className={cn(
-            "px-6 py-4 border-b border-neutral-200 flex items-center gap-3 border-t",
-            isCollapsed && "justify-center px-2",
+            "px-6 py-2 border-t border-b border-neutral-200",
+            isCollapsed && "px-2",
           )}
         >
-          <Link to="/profile" key="profile">
-            <Avatar className="size-10 flex-shrink-0">
-              <AvatarFallback className="bg-slate-600 text-white text-xs font-medium">
-                {(currentUser.firstName || "?")[0]}
-                {(currentUser.lastName || "")[0]}
-              </AvatarFallback>
-            </Avatar>
-          </Link>
-          {!isCollapsed && (
-            <div className="min-w-0">
-              <p className="text-md font-medium text-neutral-900 truncate">
-                {currentUser.firstName} {currentUser.lastName}
-              </p>
-              <p className="text-xs text-neutral-500">
-                {currentUser.isAdmin ? "Admin" : "Student"}
-              </p>
+          {token && currentUser ? (
+            /* Logged-in user */
+            <div
+              className={cn(
+                "flex items-center gap-3",
+                isCollapsed && "justify-center",
+              )}
+            >
+              <Link to="/profile">
+                <Avatar className="size-10">
+                  <AvatarFallback className="bg-slate-600 text-white text-xs">
+                    {(currentUser.firstName || "?")[0]}
+                    {(currentUser.lastName || "")[0]}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+
+              {!isCollapsed && (
+                <div className="min-w-0">
+                  <p className="font-medium truncate">
+                    {currentUser.firstName} {currentUser.lastName}
+                  </p>
+                  <p className="text-xs text-neutral-500">
+                    {currentUser.isAdmin ? "Admin" : "Student"}
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Guest view */
+            <div
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-2",
+                isCollapsed && "justify-center px-0",
+              )}
+            >
+              <Avatar className="size-10">
+                <AvatarFallback className="bg-neutral-300 text-white">
+                  ?
+                </AvatarFallback>
+              </Avatar>
+
+              {!isCollapsed && (
+                <p className="font-medium text-slate-800">Guest</p>
+              )}
             </div>
           )}
         </div>
 
+        {/* Bottom actions */}
         <div className="px-4 py-2 border-t border-neutral-200">
-          {/* Logout */}
           <div className={cn("px-4 py-2", isCollapsed && "px-2")}>
-            <button
-              onClick={handleLogout}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-neutral-600 hover:bg-neutral-100 transition-colors",
-                isCollapsed && "justify-center",
-              )}
-            >
-              <LogOut className="w-5 h-5 flex-shrink-0 text-rose-800" />
-              {!isCollapsed && (
-                <span className="font-medium text-rose-800">Logout</span>
-              )}
-            </button>
+            {token ? (
+              /* Logout button */
+              <button
+                onClick={handleLogout}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-neutral-100",
+                  isCollapsed && "justify-center",
+                )}
+              >
+                <LogOut className="w-5 h-5 text-rose-800" />
+                {!isCollapsed && (
+                  <span className="font-medium text-rose-800">Logout</span>
+                )}
+              </button>
+            ) : (
+              /* Login button */
+              <button
+                onClick={() => navigate("/login")}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-neutral-100",
+                  isCollapsed && "justify-center",
+                )}
+              >
+                <User className="w-5 h-5 text-slate-800" />
+                {!isCollapsed && (
+                  <span className="font-medium text-slate-800">Login</span>
+                )}
+              </button>
+            )}
           </div>
 
+          {/* Collapse toggle */}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsCollapsed(!isCollapsed)}
             className={cn(
               "w-full flex items-center gap-2",
-              isCollapsed && "justify-center px-0",
+              isCollapsed && "justify-center",
             )}
           >
             {isCollapsed ? (
@@ -157,15 +212,10 @@ export function Layout() {
               </>
             )}
           </Button>
-          {!isCollapsed && (
-            <div className="text-xs text-neutral-500 text-center mt-2">
-              © 2026 DailyBits
-            </div>
-          )}
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Main content */}
       <main className="flex-1 overflow-hidden">
         <Outlet />
       </main>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router";
 import { Search, Plus, Check, Settings } from "lucide-react";
-import { getUserRole } from "../utils/storage";
+import { getUserRole, getCurrentUser } from "../utils/storage";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -21,7 +21,7 @@ import {
 } from "../utils/api";
 import { Problem } from "../types";
 
-const ACCOUNT_NUMBER = 1;
+// const ACCOUNT_NUMBER = 1;
 
 export function ProblemList() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,37 +30,60 @@ export function ProblemList() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [todoIds, setTodoIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+
   const userRole = getUserRole();
+  const currentUser = getCurrentUser();
+  const token = localStorage.getItem("access_token");
+  const accountNumber = currentUser?.accountNumber;
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadData() {
       // Fetch all pages of problems
       try {
         let page = 1;
         const all: Problem[] = [];
+
         while (true) {
           const res = await fetchProblems(page);
           all.push(...res.results.map(apiProblemListToFrontend));
           if (res.results.length < res.page_size) break;
           page++;
         }
-        setProblems(all);
+
+        if (!cancelled) {
+          setProblems(all);
+        }
       } catch {
-        toast.error("Failed to load problems");
+        if (!cancelled) {
+          toast.error("Failed to load problems");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
 
       // Fetch current user's todo list (independent — won't block problems)
+      if (!token || !accountNumber) return;
+
       try {
-        const todoRes = await fetchTodoItemsApi(ACCOUNT_NUMBER);
-        setTodoIds(new Set(todoRes.results.map((t) => String(t.problem_id))));
+        const todoRes = await fetchTodoItemsApi(accountNumber);
+        if (!cancelled) {
+          setTodoIds(new Set(todoRes.results.map((t) => String(t.problem_id))));
+        }
       } catch {
         // todo list unavailable — buttons still work, just won't show "In Todo" state
       }
     }
+
     loadData();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, accountNumber]);
 
   const categories = useMemo(() => {
     const cats = new Set(problems.map((p) => p.algorithm).filter(Boolean));
@@ -72,10 +95,13 @@ export function ProblemList() {
       const matchesSearch =
         problem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         problem.algorithm.toLowerCase().includes(searchQuery.toLowerCase());
+
       const matchesDifficulty =
         difficultyFilter === "all" || problem.difficulty === difficultyFilter;
+
       const matchesAlgorithm =
         algorithmFilter === "all" || problem.algorithm === algorithmFilter;
+
       return matchesSearch && matchesDifficulty && matchesAlgorithm;
     });
   }, [problems, searchQuery, difficultyFilter, algorithmFilter]);
@@ -83,8 +109,14 @@ export function ProblemList() {
   const handleAddToTodo = async (problemId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!token || !accountNumber) {
+      toast.error("Please login first");
+      return;
+    }
+
     try {
-      const res = await addTodoApi(ACCOUNT_NUMBER, Number(problemId));
+      const res = await addTodoApi(accountNumber, Number(problemId));
       if (res.already_exists) {
         toast.info("Already in your todo list");
       } else {
@@ -117,6 +149,7 @@ export function ProblemList() {
           <h1 className="text-2xl font-semibold text-neutral-900">
             Problem List
           </h1>
+
           {userRole === "administrator" && (
             <Link to="/admin/problems">
               <Button variant="outline" size="sm">
@@ -196,9 +229,11 @@ export function ProblemList() {
                           {problem.difficulty}
                         </Badge>
                       </div>
+
                       <p className="text-sm text-neutral-600 line-clamp-2 mb-2">
                         {problem.description}
                       </p>
+
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-md">
                           {problem.algorithm}
@@ -210,7 +245,7 @@ export function ProblemList() {
                       variant="outline"
                       size="sm"
                       onClick={(e) => handleAddToTodo(problem.id, e)}
-                      disabled={todoIds.has(problem.id)}
+                      disabled={!token || todoIds.has(problem.id)}
                       className="ml-4"
                     >
                       {todoIds.has(problem.id) ? (
