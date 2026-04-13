@@ -82,29 +82,43 @@ export default function Login() {
         </h2>
 
         <form onSubmit={handleLogin} className="space-y-4">
+          {/* Email */}
           <div>
-            <label className="mb-1 block text-sm font-medium">Email</label>
+            <label htmlFor="email" className="mb-1 block text-sm font-medium">
+              Email
+            </label>
             <input
+              id="email"
               type="email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               className="w-full rounded border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
+          {/* Password */}
           <div>
-            <label className="mb-1 block text-sm font-medium">Password</label>
+            <label
+              htmlFor="password"
+              className="mb-1 block text-sm font-medium"
+            >
+              Password
+            </label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               className="w-full rounded border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
+          {/* Button */}
           <button
             type="submit"
             disabled={loading}
@@ -113,6 +127,7 @@ export default function Login() {
             {loading ? "Logging in..." : "Login"}
           </button>
 
+          {/* Signup */}
           <p className="mt-4 text-center text-sm">
             Don't have an account?
             <span
@@ -124,6 +139,7 @@ export default function Login() {
           </p>
         </form>
 
+        {/* Message */}
         {message && (
           <p className="mt-4 text-center text-sm text-red-500">{message}</p>
         )}
