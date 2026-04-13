@@ -16,15 +16,26 @@ const API_BASE = "http://localhost:8000";
 // ============================================================
 
 /** Fetch JSON from the backend. Throws on non-2xx responses with the error message from the body. */
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function apiFetch<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const token = localStorage.getItem("access_token");
+
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options.headers },
     ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
   });
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || body.message || `Request failed (${res.status})`);
+    throw new Error(
+      body.error || body.message || `Request failed (${res.status})`,
+    );
   }
 
   return res.json();
@@ -105,10 +116,13 @@ export function fetchAdminProblem(pid: number): Promise<ApiProblemDetail> {
 }
 
 export function createProblem(data: ProblemPayload) {
-  return apiFetch<{ success: boolean; problemId: number }>("/admin/problems/add/", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+  return apiFetch<{ success: boolean; problemId: number }>(
+    "/admin/problems/add/",
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+  );
 }
 
 export function updateProblemApi(pid: number, data: ProblemPayload) {
@@ -125,13 +139,14 @@ export function deleteProblemApi(pid: number) {
 }
 
 export function setProblemPublishedApi(pid: number, isPublished: boolean) {
-  return apiFetch<{ success: boolean; problemId: number; isPublished: boolean }>(
-    `/admin/problems/${pid}/publish/`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ isPublished }),
-    }
-  );
+  return apiFetch<{
+    success: boolean;
+    problemId: number;
+    isPublished: boolean;
+  }>(`/admin/problems/${pid}/publish/`, {
+    method: "PATCH",
+    body: JSON.stringify({ isPublished }),
+  });
 }
 
 // ============================================================
@@ -160,10 +175,13 @@ export function deleteUserApi(accountNumber: number) {
 }
 
 export function toggleUserAdmin(accountNumber: number, isAdmin: boolean) {
-  return apiFetch<{ success: boolean }>(`/admin/users/${accountNumber}/toggle-admin/`, {
-    method: "PATCH",
-    body: JSON.stringify({ isAdmin }),
-  });
+  return apiFetch<{ success: boolean }>(
+    `/admin/users/${accountNumber}/toggle-admin/`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ isAdmin }),
+    },
+  );
 }
 
 // ============================================================
@@ -259,7 +277,13 @@ export function saveSolution(
 ): Promise<{ success: boolean }> {
   return apiFetch("/solutions/add/", {
     method: "POST",
-    body: JSON.stringify({ pId, sDescription, solutionExplanation, timeComplexity, spaceComplexity }),
+    body: JSON.stringify({
+      pId,
+      sDescription,
+      solutionExplanation,
+      timeComplexity,
+      spaceComplexity,
+    }),
   });
 }
 
@@ -283,7 +307,10 @@ export interface GeneratedPlan {
   total_time: number;
 }
 
-export function generateStudyPlan(accountNumber: number, message: string): Promise<GeneratedPlan> {
+export function generateStudyPlan(
+  accountNumber: number,
+  message: string,
+): Promise<GeneratedPlan> {
   return apiFetch("/chat/generate-plan/", {
     method: "POST",
     body: JSON.stringify({ account_number: accountNumber, message }),
@@ -304,7 +331,9 @@ export interface ChatHistoryItem {
   created_at: string;
 }
 
-export function fetchChatHistory(accountNumber: number): Promise<ChatHistoryItem[]> {
+export function fetchChatHistory(
+  accountNumber: number,
+): Promise<ChatHistoryItem[]> {
   return apiFetch(`/chat/history/${accountNumber}/`);
 }
 
@@ -325,7 +354,9 @@ export interface UserProgressData {
   hard_total: number;
 }
 
-export function fetchUserProgress(accountNumber: number): Promise<UserProgressData> {
+export function fetchUserProgress(
+  accountNumber: number,
+): Promise<UserProgressData> {
   return apiFetch(`/progress/${accountNumber}/`);
 }
 
@@ -337,7 +368,9 @@ export interface RecentActivityItem {
   is_correct: boolean;
 }
 
-export function fetchRecentActivity(accountNumber: number): Promise<RecentActivityItem[]> {
+export function fetchRecentActivity(
+  accountNumber: number,
+): Promise<RecentActivityItem[]> {
   return apiFetch(`/progress/${accountNumber}/recent/`);
 }
 
@@ -346,7 +379,9 @@ export interface AlgorithmProgressItem {
   problems_solved: number;
 }
 
-export function fetchAlgorithmProgress(accountNumber: number): Promise<AlgorithmProgressItem[]> {
+export function fetchAlgorithmProgress(
+  accountNumber: number,
+): Promise<AlgorithmProgressItem[]> {
   return apiFetch(`/progress/${accountNumber}/algorithms/`);
 }
 
@@ -368,7 +403,9 @@ export interface StudyPlanListItem {
   }[];
 }
 
-export function fetchStudyPlans(accountNumber: number): Promise<StudyPlanListItem[]> {
+export function fetchStudyPlans(
+  accountNumber: number,
+): Promise<StudyPlanListItem[]> {
   return apiFetch(`/study-plans/${accountNumber}/`);
 }
 
@@ -376,8 +413,19 @@ export function fetchStudyPlans(accountNumber: number): Promise<StudyPlanListIte
 // User Profile
 // ============================================================
 
-export function updateUserProfile(accountNumber: number, firstName: string, lastName: string) {
-  return apiFetch<{ email: string; firstName: string; lastName: string; registerDate: string; isStudent: boolean; isAdmin: boolean }>(`/profile/${accountNumber}/update/`, {
+export function updateUserProfile(
+  accountNumber: number,
+  firstName: string,
+  lastName: string,
+) {
+  return apiFetch<{
+    email: string;
+    firstName: string;
+    lastName: string;
+    registerDate: string;
+    isStudent: boolean;
+    isAdmin: boolean;
+  }>(`/profile/${accountNumber}/update/`, {
     method: "POST",
     body: JSON.stringify({ firstName, lastName }),
   });
@@ -399,34 +447,55 @@ export interface ApiTodoItem {
   source: "manual" | "study_plan";
 }
 
-export function fetchTodoItemsApi(accountNumber: number): Promise<{ results: ApiTodoItem[] }> {
+export function fetchTodoItemsApi(
+  accountNumber: number,
+): Promise<{ results: ApiTodoItem[] }> {
   return apiFetch(`/todo/${accountNumber}/`);
 }
 
-export function addTodoApi(accountNumber: number, problemId: number): Promise<{ success: boolean; already_exists?: boolean }> {
+export function addTodoApi(
+  accountNumber: number,
+  problemId: number,
+): Promise<{ success: boolean; already_exists?: boolean }> {
   return apiFetch("/todo/add/", {
     method: "POST",
-    body: JSON.stringify({ account_number: accountNumber, problem_id: problemId }),
+    body: JSON.stringify({
+      account_number: accountNumber,
+      problem_id: problemId,
+    }),
   });
 }
 
-export function removeTodoApi(accountNumber: number, problemId: number): Promise<{ success: boolean }> {
+export function removeTodoApi(
+  accountNumber: number,
+  problemId: number,
+): Promise<{ success: boolean }> {
   return apiFetch(`/todo/${accountNumber}/${problemId}/`, { method: "DELETE" });
 }
-
 
 // ============================================================
 // Notes
 // ============================================================
 
-export function fetchNoteApi(accountNumber: number, problemId: number): Promise<{ note_content: string }> {
+export function fetchNoteApi(
+  accountNumber: number,
+  problemId: number,
+): Promise<{ note_content: string }> {
   return apiFetch(`/notes/${accountNumber}/${problemId}/`);
 }
 
-export function saveNoteApi(accountNumber: number, problemId: number, noteContent: string): Promise<{ success: boolean }> {
+export function saveNoteApi(
+  accountNumber: number,
+  problemId: number,
+  noteContent: string,
+): Promise<{ success: boolean }> {
   return apiFetch("/notes/save/", {
     method: "POST",
-    body: JSON.stringify({ account_number: accountNumber, problem_id: problemId, note_content: noteContent }),
+    body: JSON.stringify({
+      account_number: accountNumber,
+      problem_id: problemId,
+      note_content: noteContent,
+    }),
   });
 }
 
@@ -466,7 +535,9 @@ export interface ApiSubmission {
   submitted_code: string;
 }
 
-export function fetchSubmissionsApi(accountNumber: number): Promise<ApiSubmission[]> {
+export function fetchSubmissionsApi(
+  accountNumber: number,
+): Promise<ApiSubmission[]> {
   return apiFetch(`/submissions/${accountNumber}/`);
 }
 
@@ -478,6 +549,10 @@ export function submitProblemApi(
 ): Promise<{ success: boolean }> {
   return apiFetch(`/problems/${pid}/submit/`, {
     method: "POST",
-    body: JSON.stringify({ account_number: accountNumber, submission, is_correct: isCorrect }),
+    body: JSON.stringify({
+      account_number: accountNumber,
+      submission,
+      is_correct: isCorrect,
+    }),
   });
 }

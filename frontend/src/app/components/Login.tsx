@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { supabase } from "../utils/supabase";
 import { saveToken, saveUser } from "../utils/auth";
+import { setCurrentUser } from "../utils/storage";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -59,6 +60,7 @@ export default function Login() {
 
       // 4. Save user
       saveUser(userData);
+      setCurrentUser(userData);
 
       setMessage("Login successful");
       setLoading(false);

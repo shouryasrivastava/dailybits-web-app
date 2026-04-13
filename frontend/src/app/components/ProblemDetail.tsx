@@ -1,7 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import Editor from "@monaco-editor/react";
-import { ChevronLeft, Eye, CheckCircle, BookmarkPlus, GripHorizontal, X, Loader2, StickyNote } from "lucide-react";
+import {
+  ChevronLeft,
+  Eye,
+  CheckCircle,
+  BookmarkPlus,
+  GripHorizontal,
+  X,
+  Loader2,
+  StickyNote,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
@@ -12,6 +21,7 @@ import {
   saveCodeCache,
   getCodeCache,
   clearCodeCache,
+  getCurrentUser,
 } from "../utils/storage";
 import {
   fetchAdminProblem,
@@ -26,11 +36,13 @@ import {
 import { Problem } from "../types";
 import { cn } from "./ui/utils";
 
-const ACCOUNT_NUMBER = 1;
-
 export function ProblemDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const currentUser = getCurrentUser();
+  const token = localStorage.getItem("access_token");
+  const accountNumber = currentUser?.accountNumber;
 
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,12 +55,22 @@ export function ProblemDetail() {
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [solution, setSolution] = useState<string | null>(null);
-  const [solutionMeta, setSolutionMeta] = useState({ explanation: "", time: "", space: "" });
+  const [solutionMeta, setSolutionMeta] = useState({
+    explanation: "",
+    time: "",
+    space: "",
+  });
   const [solutionLoading, setSolutionLoading] = useState(false);
   const [rightTab, setRightTab] = useState<"code" | "notes">("code");
   const [showNotesPanel, setShowNotesPanel] = useState(false);
-  const [solutionPanelPosition, setSolutionPanelPosition] = useState({ x: 48, y: 88 });
-  const [notesPanelPosition, setNotesPanelPosition] = useState({ x: 100, y: 88 });
+  const [solutionPanelPosition, setSolutionPanelPosition] = useState({
+    x: 48,
+    y: 88,
+  });
+  const [notesPanelPosition, setNotesPanelPosition] = useState({
+    x: 100,
+    y: 88,
+  });
 
   const solutionDragRef = useRef<{
     startX: number;
@@ -67,14 +89,17 @@ export function ProblemDetail() {
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
+
     fetchAdminProblem(Number(id))
       .then((detail) => {
         if (cancelled) return;
+
         const p = apiProblemDetailToFrontend(detail);
         setProblem(p);
 
         const completedProblems = getCompletedProblems();
         const completed = completedProblems.find((c) => c.problemId === p.id);
+
         if (completed) {
           setCode(completed.code);
           setNotes(completed.notes || "");
@@ -84,27 +109,39 @@ export function ProblemDetail() {
           const cache = getCodeCache();
           setCode(cache[p.id] || p.starterCode);
           setIsCompleted(false);
-          fetchNoteApi(ACCOUNT_NUMBER, Number(p.id))
-            .then((res) => {
-              if (cancelled) return;
-              if (res.note_content) {
-                setNotes(res.note_content);
-                setDraftNotes(res.note_content);
-              }
-            })
-            .catch(() => {});
+
+          // only fetch note if logged in
+          if (token && accountNumber) {
+            fetchNoteApi(accountNumber, Number(p.id))
+              .then((res) => {
+                if (cancelled) return;
+                if (res.note_content) {
+                  setNotes(res.note_content);
+                  setDraftNotes(res.note_content);
+                }
+              })
+              .catch(() => {});
+          }
         }
       })
-      .catch(() => { if (!cancelled) toast.error("Failed to load problem"); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [id]);
+      .catch(() => {
+        if (!cancelled) toast.error("Failed to load problem");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, token, accountNumber]);
 
   useEffect(() => {
     if (problem && code && code !== problem.starterCode) {
       const timer = setTimeout(() => {
         saveCodeCache(problem.id, code);
       }, 1000);
+
       return () => clearTimeout(timer);
     }
   }, [code, problem]);
@@ -122,9 +159,16 @@ export function ProblemDetail() {
         const maxY = workspaceRect
           ? Math.max(72, workspaceRect.height - 420 - 16)
           : Number.POSITIVE_INFINITY;
+
         setSolutionPanelPosition({
-          x: Math.min(maxX, Math.max(16, dragState.originX + event.clientX - dragState.startX)),
-          y: Math.min(maxY, Math.max(72, dragState.originY + event.clientY - dragState.startY)),
+          x: Math.min(
+            maxX,
+            Math.max(16, dragState.originX + event.clientX - dragState.startX),
+          ),
+          y: Math.min(
+            maxY,
+            Math.max(72, dragState.originY + event.clientY - dragState.startY),
+          ),
         });
       }
 
@@ -137,9 +181,16 @@ export function ProblemDetail() {
         const maxY = workspaceRect
           ? Math.max(72, workspaceRect.height - 360 - 16)
           : Number.POSITIVE_INFINITY;
+
         setNotesPanelPosition({
-          x: Math.min(maxX, Math.max(16, dragState.originX + event.clientX - dragState.startX)),
-          y: Math.min(maxY, Math.max(72, dragState.originY + event.clientY - dragState.startY)),
+          x: Math.min(
+            maxX,
+            Math.max(16, dragState.originX + event.clientX - dragState.startX),
+          ),
+          y: Math.min(
+            maxY,
+            Math.max(72, dragState.originY + event.clientY - dragState.startY),
+          ),
         });
       }
     };
@@ -174,8 +225,18 @@ export function ProblemDetail() {
           <h2 className="text-xl font-semibold text-neutral-900 mb-2">
             Problem not found
           </h2>
-          <Button onClick={() => navigate("/problems")}>Back to Problems</Button>
+          <Button onClick={() => navigate("/problems")}>
+            Back to Problems
+          </Button>
         </div>
+      </div>
+    );
+  }
+
+  if (!token || !accountNumber) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <p className="text-neutral-500">Please login first.</p>
       </div>
     );
   }
@@ -210,21 +271,29 @@ export function ProblemDetail() {
 
   const handleSubmit = async () => {
     if (!problem || isChecking || submitCooldown > 0) return;
+
     setIsChecking(true);
     try {
       const result = await checkCodeWithGemini(
-        ACCOUNT_NUMBER,
+        accountNumber,
         Number(problem.id),
         code,
         problem.title,
         problem.description,
       );
+
       try {
-        await submitProblemApi(ACCOUNT_NUMBER, Number(problem.id), code, result.is_correct);
+        await submitProblemApi(
+          accountNumber,
+          Number(problem.id),
+          code,
+          result.is_correct,
+        );
       } catch {
         toast.error("Failed to submit problem");
         return;
       }
+
       if (result.is_correct) {
         saveCompletedProblem({
           problemId: problem.id,
@@ -246,9 +315,11 @@ export function ProblemDetail() {
       setIsChecking(false);
       let remaining = 15;
       setSubmitCooldown(remaining);
+
       cooldownRef.current = setInterval(() => {
         remaining -= 1;
         setSubmitCooldown(remaining);
+
         if (remaining <= 0) {
           clearInterval(cooldownRef.current!);
           cooldownRef.current = null;
@@ -270,10 +341,15 @@ export function ProblemDetail() {
 
   const handleSaveNotes = async () => {
     if (!problem) return;
+
     setNotes(draftNotes);
+
     const comp = getCompletedProblems().find((c) => c.problemId === problem.id);
-    if (comp) saveCompletedProblem({ ...comp, notes: draftNotes });
-    saveNoteApi(ACCOUNT_NUMBER, Number(problem.id), draftNotes).catch(() => {});
+    if (comp) {
+      saveCompletedProblem({ ...comp, notes: draftNotes });
+    }
+
+    saveNoteApi(accountNumber, Number(problem.id), draftNotes).catch(() => {});
     toast.success("Notes saved");
     setShowNotesPanel(false);
     setRightTab("code");
@@ -281,7 +357,7 @@ export function ProblemDetail() {
 
   const handleAddToTodo = async () => {
     try {
-      const res = await addTodoApi(ACCOUNT_NUMBER, Number(problem.id));
+      const res = await addTodoApi(accountNumber, Number(problem.id));
       if (res.already_exists) {
         toast.info("Already in your todo list");
       } else {
@@ -319,6 +395,7 @@ export function ProblemDetail() {
             <ChevronLeft className="w-4 h-4" />
             Back
           </Button>
+
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleAddToTodo}>
               <BookmarkPlus className="w-4 h-4 mr-1" />
@@ -332,12 +409,14 @@ export function ProblemDetail() {
             <h1 className="text-2xl font-semibold text-neutral-900">
               {problem.title}
             </h1>
+
             <Badge
               variant="outline"
               className={getDifficultyColor(problem.difficulty)}
             >
               {problem.difficulty}
             </Badge>
+
             {isCompleted && (
               <Badge
                 variant="outline"
@@ -400,35 +479,41 @@ export function ProblemDetail() {
           {/* Tab buttons */}
           <div className="flex gap-1 bg-neutral-100 rounded-lg p-1">
             <button
-              onClick={() => { setShowNotesPanel(false); setRightTab("code"); }}
+              onClick={() => {
+                setShowNotesPanel(false);
+                setRightTab("code");
+              }}
               className={cn(
                 "px-3 py-1 text-sm font-medium rounded-md transition-colors",
                 rightTab === "code"
                   ? "bg-white text-neutral-900 shadow-sm"
-                  : "text-neutral-600 hover:text-neutral-900"
+                  : "text-neutral-600 hover:text-neutral-900",
               )}
             >
               Code
             </button>
+
             <button
               onClick={handleOpenNotes}
               className={cn(
                 "px-3 py-1 text-sm font-medium rounded-md transition-colors flex items-center gap-1",
                 rightTab === "notes"
                   ? "bg-white text-neutral-900 shadow-sm"
-                  : "text-neutral-600 hover:text-neutral-900"
+                  : "text-neutral-600 hover:text-neutral-900",
               )}
             >
               <StickyNote className="w-3 h-3" />
               Notes
             </button>
           </div>
+
           {/* Action buttons */}
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleShowAnswer}>
               <Eye className="w-4 h-4 mr-1" />
               {showAnswer ? "Hide Answer" : "Show Answer"}
             </Button>
+
             <Button
               size="sm"
               onClick={handleSubmit}
@@ -499,6 +584,7 @@ export function ProblemDetail() {
                   Sample Solution
                 </h3>
               </div>
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -533,15 +619,38 @@ export function ProblemDetail() {
                       }}
                     />
                   </div>
-                  {(solutionMeta.explanation || solutionMeta.time || solutionMeta.space) && (
+
+                  {(solutionMeta.explanation ||
+                    solutionMeta.time ||
+                    solutionMeta.space) && (
                     <div className="shrink-0 border-t border-neutral-200 bg-neutral-50 px-4 py-2 text-xs text-neutral-600 space-y-1">
                       {solutionMeta.explanation && (
-                        <p><span className="font-medium text-neutral-700">Explanation:</span> {solutionMeta.explanation}</p>
+                        <p>
+                          <span className="font-medium text-neutral-700">
+                            Explanation:
+                          </span>{" "}
+                          {solutionMeta.explanation}
+                        </p>
                       )}
+
                       {(solutionMeta.time || solutionMeta.space) && (
                         <p className="flex gap-3">
-                          {solutionMeta.time && <span><span className="font-medium text-neutral-700">Time:</span> {solutionMeta.time}</span>}
-                          {solutionMeta.space && <span><span className="font-medium text-neutral-700">Space:</span> {solutionMeta.space}</span>}
+                          {solutionMeta.time && (
+                            <span>
+                              <span className="font-medium text-neutral-700">
+                                Time:
+                              </span>{" "}
+                              {solutionMeta.time}
+                            </span>
+                          )}
+                          {solutionMeta.space && (
+                            <span>
+                              <span className="font-medium text-neutral-700">
+                                Space:
+                              </span>{" "}
+                              {solutionMeta.space}
+                            </span>
+                          )}
                         </p>
                       )}
                     </div>
@@ -580,6 +689,7 @@ export function ProblemDetail() {
                 <GripHorizontal className="h-4 w-4 text-neutral-400" />
                 <h3 className="font-semibold text-neutral-900">Notes</h3>
               </div>
+
               <Button
                 variant="ghost"
                 size="sm"
