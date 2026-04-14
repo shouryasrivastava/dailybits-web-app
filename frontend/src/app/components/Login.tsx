@@ -68,7 +68,6 @@ export default function Login() {
       // 5. Redirect
       navigate("/todo");
     } catch (err) {
-      console.error(err);
       setMessage("Something went wrong during login");
       setLoading(false);
     }

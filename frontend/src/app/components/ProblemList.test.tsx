@@ -95,6 +95,13 @@ describe("ProblemList", () => {
     localStorage.clear();
     vi.clearAllMocks();
 
+    // Seed a logged-in user so auth-gated features (todo list, add-to-todo) work.
+    localStorage.setItem(
+      "pythonpractice_current_user",
+      JSON.stringify({ id: "1", accountNumber: 1, email: "test@example.com", firstName: "Test", lastName: "User", registerDate: "2025-01-01", isAdmin: false })
+    );
+    localStorage.setItem("access_token", "test-token");
+
     // Default happy-path: one page containing two problems, no existing todos.
     vi.mocked(api.fetchProblems).mockResolvedValue(
       makeProblemsResponse([mockApiProblemListItem, mockApiProblemListItem2])

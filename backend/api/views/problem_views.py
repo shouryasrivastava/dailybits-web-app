@@ -42,13 +42,13 @@ def list_problems(request):
 
 # Get a single problem
 @api_view(['GET'])
-def get_single_problem(request, pId):
+def get_single_problem(request, pid):
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT *
             FROM single_problem_view
             WHERE problem_id = %s
-        """, [pId])
+        """, [pid])
 
         columns = [col[0] for col in cursor.description] # type: ignore
         rows = cursor.fetchall()

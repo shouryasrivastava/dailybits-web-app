@@ -11,8 +11,6 @@ import { getCurrentUser } from "../utils/storage";
 
 type Tab = "submissions" | "completed";
 
-// const ACCOUNT_NUMBER = 1;
-
 export function SubmissionsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("submissions");
   const [submissions, setSubmissions] = useState<ApiSubmission[]>([]);
@@ -44,7 +42,6 @@ export function SubmissionsPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          console.error("Failed to fetch submissions:", err);
           setSubmissions([]);
         }
       })

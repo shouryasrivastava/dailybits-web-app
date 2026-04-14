@@ -1,5 +1,23 @@
+"""
+URL configuration for project.
+
+The `urlpatterns` list routes URLs to views. For more information please see:
+    https://docs.djangoproject.com/en/5.2/topics/http/urls/
+Examples:
+Function views
+    1. Add an import:  from my_app import views
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+Class-based views
+    1. Add an import:  from other_app.views import Home
+    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+Including another URLconf
+    1. Import the include() function: from django.urls import include, path
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+"""
 from django.urls import path
-from api.views.auth_views import me, get_profile, update_profile, list_users, delete_user
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from api.views.auth_views import signup, login, get_profile, update_profile, list_users, delete_user
 from api.views.problem_views import list_problems, get_single_problem, submit_problem
 from api.views.submission_views import list_submissions
 from api.views.chat_views import generate_plan, accept_plan, chat_history, check_code
@@ -14,9 +32,16 @@ from api.views.solution_views import get_solution, add_solution, update_solution
 from api.views.todo_views import get_todo_list_by_account, add_todo_item, remove_todo_item
 from api.views.note_views import get_note, save_note
 
+@api_view(['GET'])
+def api_root(request):
+    return Response({"status": "ok", "message": "DailyBits API is running"})
+
 urlpatterns = [
+    path("", api_root),
+
     # Authentication
-    path("auth/me/", me),
+    path("auth/signup/", signup),
+    path("auth/login/", login),
 
     # User Profile
     path("profile/<int:account_number>/", get_profile),
@@ -25,7 +50,7 @@ urlpatterns = [
     # User
     path("users/", list_users),
     path("users/<int:account_number>/", delete_user),
-
+   
     # Problem
     path("problems/<int:pid>/submit/", submit_problem),
     path("problems/<int:pid>/", get_single_problem),
@@ -37,14 +62,14 @@ urlpatterns = [
     path("todo/<int:account_number>/", get_todo_list_by_account),
 
     # Solution
-    path("solutions/<int:pId>/", get_solution),
+    path("solutions/<int:pid>/", get_solution),
     path("solutions/add/", add_solution),
     path("solutions/update/<int:pid>/", update_solution),
 
     # Submission
     path("submissions/<int:account_number>/", list_submissions),
 
-    # Admin
+    # Admin (dashboard, problem CRUD, user management, algorithms)
     path("admin/dashboard-stats/", admin_dashboard_stats),
     path("admin/problems/", admin_list_problems),
     path("admin/problems/add/", admin_add_problem),

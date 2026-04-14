@@ -16,8 +16,6 @@ export function TodoList() {
   const token = localStorage.getItem("access_token");
   const accountNumber = currentUser?.accountNumber;
 
-  // const ACCOUNT_NUMBER = 1;
-
   useEffect(() => {
     if (!token || !accountNumber) {
       setTodoItems([]);

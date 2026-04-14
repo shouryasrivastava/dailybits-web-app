@@ -20,8 +20,6 @@ import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { Badge } from "./ui/badge";
 
-// const ACCOUNT_NUMBER = 1;
-
 function getDifficultyColor(difficulty: string) {
   switch (difficulty) {
     case "Easy":

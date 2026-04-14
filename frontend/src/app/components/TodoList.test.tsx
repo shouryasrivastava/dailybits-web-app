@@ -54,6 +54,13 @@ describe("TodoList", () => {
     localStorage.clear();
     vi.clearAllMocks();
 
+    // Seed a logged-in user so auth-gated data loading works.
+    localStorage.setItem(
+      "pythonpractice_current_user",
+      JSON.stringify({ id: "1", accountNumber: 1, email: "test@example.com", firstName: "Test", lastName: "User", registerDate: "2025-01-01", isAdmin: false })
+    );
+    localStorage.setItem("access_token", "test-token");
+
     vi.mocked(api.fetchTodoItemsApi).mockResolvedValue({
       results: [mockApiTodoItem, mockApiTodoItem2],
     });

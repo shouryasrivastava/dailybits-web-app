@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 @api_view(['GET'])
-def get_solution(request, pId):
+def get_solution(request, pid):
     try:
         with connection.cursor() as cursor:
             cursor.execute("""
@@ -12,7 +12,7 @@ def get_solution(request, pId):
                        solution_explanation, time_complexity, space_complexity
                 FROM solution
                 WHERE problem_id = %s
-            """, [pId])
+            """, [pid])
             row = cursor.fetchone()
             if row:
                 return Response({

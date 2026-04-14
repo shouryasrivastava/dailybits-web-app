@@ -206,7 +206,6 @@ export function deleteUser(userId: string): void {
 export function getCurrentUser(): AppUser {
   const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
   if (data) return JSON.parse(data);
-  // Default to first user (id='1') consistent with hardcoded ACCOUNT_NUMBER = 1
   const users = getUsers();
   return users[0];
 }

@@ -113,21 +113,15 @@ Develop an AI-powered coding practice platform that:
 
 - Authentication: API key-based authentication
 
-### OAuth + JWT Authentication:
+### Supabase Authentication:
 
-- Purpose: Support user authentication using both email/password credentials and third-party identity verification via Google OAuth; enable secure session management for authenticated users
+- Purpose: Handle user authentication via Supabase Auth; manage secure session tokens for authenticated users
 
-- Interface:
-  - REST-based OAuth 2.0 Authorization Code flow for Google login
+- Interface: Supabase Auth client SDK on the frontend; backend verifies user identity through email/password credentials stored in business tables
 
-  - JWT-based authentication for securing REST API requests between the frontend and backend
+- Data Exchange: The frontend authenticates with Supabase Auth and stores the access token in localStorage. The backend manages user accounts (signup, login) using hashed passwords in the user_auth table.
 
-- Data Exchange:
-  - For OAuth login, an authorization code is exchanged for access and ID tokens, and basic user profile data is retrieved from Google by the backend.
-
-  - For authenticated sessions, JWTs are issued by the backend and sent with protected API requests from the frontend to the backend
-
-- Authentication: Authorization framework to verify user identity through Google with OAuth 2.0, signed application-level tokens to authenticate and authorize subsequent API requests JWTs
+- Authentication: Email/password authentication managed by the backend with Django's password hashing utilities (make_password / check_password). Supabase Auth handles session tokens on the frontend.
 
 ## Functional Requirements
 
