@@ -36,6 +36,7 @@ vi.mock("../utils/api", async (importOriginal) => {
 function seedUser(overrides: Record<string, unknown> = {}) {
   const user = {
     id: "1",
+    accountNumber: 1,
     email: "jane@example.com",
     firstName: "Jane",
     lastName: "Doe",
@@ -47,6 +48,7 @@ function seedUser(overrides: Record<string, unknown> = {}) {
   localStorage.setItem("pythonpractice_current_user", JSON.stringify(user));
   // Also seed the users list so updateUser() can find the record
   localStorage.setItem("pythonpractice_users", JSON.stringify([user]));
+  localStorage.setItem("access_token", "test-token");
   return user;
 }
 

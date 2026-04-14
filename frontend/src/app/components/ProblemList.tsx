@@ -21,8 +21,6 @@ import {
 } from "../utils/api";
 import { Problem } from "../types";
 
-// const ACCOUNT_NUMBER = 1;
-
 export function ProblemList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState<string>("all");

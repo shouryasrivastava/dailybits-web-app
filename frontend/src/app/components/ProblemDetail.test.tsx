@@ -93,6 +93,13 @@ describe("ProblemDetail", () => {
     // following test would see the button as "Completed" instead of "Submit".
     vi.restoreAllMocks();
 
+    // Seed a logged-in user so the auth guard doesn't render "Please login first."
+    localStorage.setItem(
+      "pythonpractice_current_user",
+      JSON.stringify({ id: "1", accountNumber: 1, email: "test@example.com", firstName: "Test", lastName: "User", registerDate: "2025-01-01", isAdmin: false })
+    );
+    localStorage.setItem("access_token", "test-token");
+
     // Happy-path defaults: problem loads successfully and all actions succeed.
     vi.mocked(api.fetchAdminProblem).mockResolvedValue(mockApiProblemDetail);
     vi.mocked(api.fetchSolution).mockResolvedValue({

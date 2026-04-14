@@ -4,7 +4,7 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { ScrollArea } from "./ui/scroll-area";
 import { Badge } from "./ui/badge";
-import { addTodoItem, getProblems } from "../utils/storage";
+import { addTodoItem, getProblems, getCurrentUser } from "../utils/storage";
 import {
   generateStudyPlan as apiGenerateStudyPlan,
   acceptStudyPlan as apiAcceptStudyPlan,
@@ -22,8 +22,6 @@ interface Message {
 interface StudyPlanChatProps {
   onPlanAccepted: () => void;
 }
-
-const ACCOUNT_NUMBER = 1;
 
 function getDifficultyColor(level: string) {
   switch (level) {
@@ -70,6 +68,9 @@ function localFallbackPlan(userMessage: string): GeneratedPlan {
 }
 
 export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
+  const currentUser = getCurrentUser();
+  const accountNumber = currentUser?.accountNumber;
+
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -83,7 +84,7 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
   const [isAccepting, setIsAccepting] = useState(false);
 
   const handleSend = async () => {
-    if (!input.trim() || isGenerating) return;
+    if (!input.trim() || isGenerating || !accountNumber) return;
 
     const userMessage = input.trim();
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
@@ -92,7 +93,7 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
 
     let plan: GeneratedPlan;
     try {
-      plan = await apiGenerateStudyPlan(ACCOUNT_NUMBER, userMessage);
+      plan = await apiGenerateStudyPlan(accountNumber!, userMessage);
     } catch {
       plan = localFallbackPlan(userMessage);
     }
@@ -111,7 +112,7 @@ export function StudyPlanChat({ onPlanAccepted }: StudyPlanChatProps) {
 
     try {
       if (currentPlan.plan_id > 0) {
-        await apiAcceptStudyPlan(ACCOUNT_NUMBER, currentPlan.plan_id);
+        await apiAcceptStudyPlan(accountNumber!, currentPlan.plan_id);
       } else {
         currentPlan.problems.forEach((p) =>
           addTodoItem({

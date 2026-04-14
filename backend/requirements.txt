@@ -24,3 +24,4 @@ pymysql
 psycopg2-binary  # PostgreSQL adapter
 supabase  # Supabase Python client (optional)
 google-genai  # Gemini API
+python-dotenv  # .env file support

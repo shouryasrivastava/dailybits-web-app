@@ -32,13 +32,6 @@ CREATE TABLE account (
     FOREIGN KEY (email) REFERENCES user_profile (email) ON DELETE CASCADE
 );
 
-CREATE TABLE token_blacklist (
-    jti VARCHAR(255) PRIMARY KEY,
-    email VARCHAR(100) NOT NULL,
-    expired_at TIMESTAMP NOT NULL,
-    FOREIGN KEY (email) REFERENCES user_profile(email) ON DELETE CASCADE
-);
-
 
 -- ============================================
 -- PROBLEM & SOLUTION TABLES (Python Problems)

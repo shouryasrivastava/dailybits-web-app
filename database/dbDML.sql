@@ -47,17 +47,6 @@ INSERT INTO account (email, register_date, student_flag, admin_flag) VALUES
     ('liam.brooks@gmail.com', '2025-02-14', TRUE, FALSE),
     ('amira.hassan@gmail.com', '2025-02-16', TRUE, FALSE);
 
-INSERT INTO token_blacklist (jti, email, expired_at) VALUES
-    ('jti_001', 'admin@gmail.com', '2025-02-01 10:00:00'),
-    ('jti_002', 'ma.ruit@northeastern.edu', '2025-02-02 09:15:00'),
-    ('jti_003', 'zhang.shuyi1@husky.neu.edu', '2025-02-03 12:30:00'),
-    ('jti_004', 'student@gmail.com', '2025-02-04 08:45:00'),
-    ('jti_005', 'alex.chen@gmail.com', '2025-02-05 18:20:00'),
-    ('jti_006', 'maya.patel@gmail.com', '2025-02-06 07:05:00'),
-    ('jti_007', 'jordan.wells@gmail.com', '2025-02-07 22:10:00'),
-    ('jti_008', 'sofia.garcia@gmail.com', '2025-02-08 11:55:00'),
-    ('jti_009', 'liam.brooks@gmail.com', '2025-02-09 13:40:00'),
-    ('jti_010', 'amira.hassan@gmail.com', '2025-02-10 16:25:00');
 
 -- ============================================
 -- PROBLEM DATA

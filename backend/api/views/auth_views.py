@@ -1,141 +1,138 @@
 """
-One auth flow only:
-
-Frontend:
-- signup with Supabase Auth
-- login with Supabase Auth
-- store access token
-- call Django /auth/me/ with Bearer token
-
-Backend:
-- verify Supabase JWT using JWKS (ES256)
-- read business user data from USER_PROFILE + ACCOUNT
-- return current user profile
-- allow profile read/update using business tables
+- POST /auth/signup/            create a new user account
+- POST /auth/login/             authenticate user (email + password), return profile & account info
+- GET  /profile/{id}/           fetch user profile and account info by account number
+- POST /profile/{id}/update/    update user first/last name, return updated profile
+- GET  /users/                  list all users with profile + account info
+- DELETE /users/{id}/           delete a user by account number
 """
-
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db import connection
-import jwt
-from jwt import PyJWKClient
+from django.db import IntegrityError, transaction
+from django.utils import timezone
+from django.contrib.auth.hashers import make_password, check_password
 
+@api_view(['POST'])
+def signup(request):
+    first_name = request.data.get("firstName")
+    last_name = request.data.get("lastName")
+    email = request.data.get("email")
+    password = request.data.get("password")
 
-def get_user_from_token(request):
-    """
-    Return token from request
-    based on Supabase access token.
-    """
-    auth_header = request.headers.get("Authorization")
-
-    if not auth_header:
-        return None, "Missing Authorization header"
-
-    parts = auth_header.split(" ")
-    if len(parts) != 2 or parts[0] != "Bearer":
-        return None, "Invalid Authorization format"
-
-    token = parts[1]
+    if not all([first_name, last_name, email, password]):
+        return Response({"success": False, "message": "Missing required fields."}, status=400)
 
     try:
-        # read payload
-        unverified_payload = jwt.decode(
-            token,
-            options={"verify_signature": False},
-        )
-        issuer = unverified_payload.get("iss")
+        with transaction.atomic():
+            # Check if email already exists
+            with connection.cursor() as cursor:
+                cursor.execute("""SELECT 1 FROM account WHERE email = %s
+                    UNION SELECT 1 FROM user_auth WHERE email = %s
+                """, [email, email])
+                if cursor.fetchone():
+                    return Response({"success": False, "message": "Email already exists."}, status=400)
 
-        if not issuer:
-            return None, "Missing issuer in token"
+            register_date = timezone.localdate()
 
-        # Supabase JWKS endpoint
-        jwks_url = f"{issuer}/.well-known/jwks.json"
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO user_profile (email, first_name, last_name)
+                    VALUES (%s, %s, %s)
+                """, [email, first_name, last_name])
 
-        jwk_client = PyJWKClient(jwks_url)
-        signing_key = jwk_client.get_signing_key_from_jwt(token)
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO account (email, register_date, student_flag, admin_flag)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING account_number
+                """, [email, register_date, True, False])
+                account_number = cursor.fetchone()[0]
 
-        decoded = jwt.decode(
-            token,
-            signing_key.key,
-            algorithms=["ES256"],
-            options={"verify_aud": False},
-        )
-        return decoded, None
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO user_auth (email, password)
+                    VALUES (%s, %s)
+                """, [email, make_password(password)])
 
-    except Exception as e:
-        return None, str(e)
-
-
-@api_view(["GET"])
-def me(request):
-    """
-    Return current logged-in user's business profile
-    based on Supabase access token.
-    """
-    decoded, error = get_user_from_token(request)
-
-    if error:
-        return Response({"success": False, "message": error}, status=401)
-
-    email = decoded.get("email")
-    if not email:
+    except IntegrityError:
         return Response(
-            {"success": False, "message": "Email not found in token"},
-            status=401,
+            {"success": False, "message": "Database error while creating account."},
+            status=400,
         )
 
+    return Response({
+        "success": True,
+        "email": email,
+        "firstName": first_name,
+        "lastName": last_name,
+        "accountNumber": account_number,
+        "isStudent": True,
+        "isAdmin": False,
+    }, status=201)
+
+
+@api_view(['POST'])
+def login(request):
+    email = request.data.get("email")
+    password = request.data.get("password")
+
+    if not email or not password:
+        return Response({"success": False, "message": "Missing email or password"})
+
+    # Step 1: verify credentials
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT password FROM user_auth WHERE email=%s
+        """, [email])
+        user = cursor.fetchone()
+
+    if not user or not check_password(password, user[0]):
+        return Response({"success": False, "message": "Invalid email or password"})
+
+    # Step 2: fetch profile + account info
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT
-                p.Email,
-                p.First_name,
-                p.Last_name,
-                a.Account_number,
-                a.Register_date,
-                a.Student_flag,
-                a.Admin_flag
-            FROM USER_PROFILE p
-            JOIN ACCOUNT a ON p.Email = a.Email
-            WHERE p.Email = %s
+                p.first_name,
+                p.last_name,
+                a.account_number,
+                a.student_flag,
+                a.admin_flag
+            FROM user_profile p
+            JOIN account a ON p.email = a.email
+            WHERE p.email=%s
         """, [email])
         profile = cursor.fetchone()
 
     if not profile:
-        return Response(
-            {"success": False, "message": "User not found in business tables"},
-            status=404,
-        )
+        return Response({"success": False, "message": "Account data not found"}, status=500)
 
     return Response({
         "success": True,
-        "email": profile[0],
-        "firstName": profile[1],
-        "lastName": profile[2],
-        "accountNumber": profile[3],
-        "registerDate": profile[4],
-        "isStudent": profile[5],
-        "isAdmin": profile[6],
+        "email": email,
+        "firstName": profile[0],
+        "lastName": profile[1],
+        "accountNumber": profile[2],
+        "isStudent": profile[3],
+        "isAdmin": profile[4],
     })
 
 
-@api_view(["GET"])
+@api_view(['GET'])
 def get_profile(request, account_number):
-    """
-    Get a user's profile by account number.
-    """
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT
-                p.Email,
-                p.First_name,
-                p.Last_name,
-                a.Register_date,
-                a.Student_flag,
-                a.Admin_flag,
-                a.Account_number
-            FROM USER_PROFILE p
-            JOIN ACCOUNT a ON p.Email = a.Email
-            WHERE a.Account_number = %s
+                p.email,
+                p.first_name,
+                p.last_name,
+                a.register_date,
+                a.student_flag,
+                a.admin_flag
+            FROM user_profile p
+            JOIN account a ON p.email = a.email
+            WHERE a.account_number = %s
         """, [account_number])
         profile = cursor.fetchone()
 
@@ -143,115 +140,75 @@ def get_profile(request, account_number):
         return Response({"success": False, "message": "Profile not found"}, status=404)
 
     return Response({
-        "success": True,
         "email": profile[0],
         "firstName": profile[1],
         "lastName": profile[2],
         "registerDate": profile[3],
         "isStudent": profile[4],
         "isAdmin": profile[5],
-        "accountNumber": profile[6],
     })
 
 
-@api_view(["POST"])
+@api_view(['POST'])
 def update_profile(request, account_number):
-    """
-    Only allow current logged-in user to update their own profile.
-    """
-    decoded, error = get_user_from_token(request)
-
-    if error:
-        return Response({"success": False, "message": error}, status=401)
-
-    current_email = decoded.get("email")
-    if not current_email:
-        return Response(
-            {"success": False, "message": "Email not found in token"},
-            status=401,
-        )
-
     first_name = request.data.get("firstName")
     last_name = request.data.get("lastName")
 
-    if not first_name or not last_name:
-        return Response(
-            {"success": False, "message": "Missing firstName or lastName"},
-            status=400,
-        )
-
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT Email
-            FROM ACCOUNT
-            WHERE Account_number = %s
-        """, [account_number])
-        row = cursor.fetchone()
-
-    if not row:
-        return Response({"success": False, "message": "Profile not found"}, status=404)
-
-    owner_email = row[0]
-    if owner_email != current_email:
-        return Response(
-            {"success": False, "message": "You can only update your own profile"},
-            status=403,
-        )
-
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            UPDATE USER_PROFILE
-            SET First_name = %s, Last_name = %s
-            WHERE Email = %s
-        """, [first_name, last_name, current_email])
+            UPDATE user_profile
+            SET first_name = %s, last_name = %s
+            WHERE email = (
+                SELECT email FROM account WHERE account_number = %s
+            )
+        """, [first_name, last_name, account_number])
 
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT
-                p.Email,
-                p.First_name,
-                p.Last_name,
-                a.Register_date,
-                a.Student_flag,
-                a.Admin_flag,
-                a.Account_number
-            FROM USER_PROFILE p
-            JOIN ACCOUNT a ON p.Email = a.Email
-            WHERE p.Email = %s
-        """, [current_email])
+                p.email,
+                p.first_name,
+                p.last_name,
+                a.register_date,
+                a.student_flag,
+                a.admin_flag
+            FROM user_profile p
+            JOIN account a ON p.email = a.email
+            WHERE a.account_number = %s
+        """, [account_number])
         profile = cursor.fetchone()
 
+    if not profile:
+        return Response({"success": False, "message": "Profile not found"}, status=404)
+
     return Response({
-        "success": True,
         "email": profile[0],
         "firstName": profile[1],
         "lastName": profile[2],
         "registerDate": profile[3],
         "isStudent": profile[4],
         "isAdmin": profile[5],
-        "accountNumber": profile[6],
     })
 
 
-@api_view(["GET"])
+@api_view(['GET'])
 def list_users(request):
     """
-    List all users.
-    Later this should be admin-only.
+    Return list of all users with profile + account info.
     """
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT
-                a.Account_number,
-                p.First_name,
-                p.Last_name,
-                p.Email,
-                a.Student_flag,
-                a.Admin_flag,
-                a.Register_date
-            FROM ACCOUNT a
-            JOIN USER_PROFILE p ON a.Email = p.Email
-            ORDER BY a.Account_number
+                a.account_number,
+                p.first_name,
+                p.last_name,
+                p.email,
+                a.student_flag,
+                a.admin_flag,
+                a.register_date
+            FROM account a
+            JOIN user_profile p ON a.email = p.email
+            ORDER BY a.account_number;
         """)
         rows = cursor.fetchall()
 
@@ -267,23 +224,15 @@ def list_users(request):
             "registerDate": r[6],
         })
 
-    return Response({
-        "success": True,
-        "users": users
-    })
+    return Response(users)
 
 
-@api_view(["DELETE"])
+@api_view(['DELETE'])
 def delete_user(request, account_number):
-    """
-    Delete business-table data only.
-    This does NOT delete auth.users.
-    """
+    # 0. Fetch email for this account
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT Email
-            FROM ACCOUNT
-            WHERE Account_number = %s
+            SELECT email FROM account WHERE account_number = %s
         """, [account_number])
         row = cursor.fetchone()
 
@@ -292,22 +241,29 @@ def delete_user(request, account_number):
 
     email = row[0]
 
+    # 1. Delete submissions
     with connection.cursor() as cursor:
         cursor.execute("""
-            DELETE FROM SUBMISSION
-            WHERE Account_number = %s
+            DELETE FROM submission
+            WHERE account_number = %s
         """, [account_number])
 
+    # 2. Delete user_auth row
     with connection.cursor() as cursor:
         cursor.execute("""
-            DELETE FROM ACCOUNT
-            WHERE Account_number = %s
+            DELETE FROM user_auth WHERE email = %s
+        """, [email])
+
+    # 3. Delete account row
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            DELETE FROM account WHERE account_number = %s
         """, [account_number])
 
+    # 4. Delete user_profile row
     with connection.cursor() as cursor:
         cursor.execute("""
-            DELETE FROM USER_PROFILE
-            WHERE Email = %s
+            DELETE FROM user_profile WHERE email = %s
         """, [email])
 
     return Response({"success": True})

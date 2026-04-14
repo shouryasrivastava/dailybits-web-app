@@ -18,8 +18,6 @@ export function UserProfilePage() {
   } | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // const ACCOUNT_NUMBER = 1;
-
   if (!token || !profile || !accountNumber) {
     return (
       <div className="h-full flex items-center justify-center bg-neutral-50">
