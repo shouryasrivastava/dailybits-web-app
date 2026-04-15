@@ -3,6 +3,8 @@ import { useNavigate } from "react-router";
 import { supabase } from "../utils/supabase";
 
 export default function Signup() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -15,18 +17,40 @@ export default function Signup() {
     setLoading(true);
     setMessage("");
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+        },
+      },
     });
 
-    setLoading(false);
-
     if (error) {
+      setLoading(false);
       setMessage(error.message);
       return;
     }
 
+    const token = data.session?.access_token;
+    if (token) {
+      // If email confirmation is disabled, session exists immediately.
+      await fetch("http://127.0.0.1:8000/auth/me/", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      setLoading(false);
+      setMessage("Signup successful. Please login.");
+      navigate("/login");
+      return;
+    }
+
+    setLoading(false);
     setMessage("Signup successful. Please check your email.");
   };
 
@@ -38,6 +62,30 @@ export default function Signup() {
         </h2>
 
         <form onSubmit={handleSignup} className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium">First name</label>
+            <input
+              type="text"
+              placeholder="Jane"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="w-full rounded border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium">Last name</label>
+            <input
+              type="text"
+              placeholder="Doe"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="w-full rounded border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
           <div>
             <label className="mb-1 block text-sm font-medium">Email</label>
             <input

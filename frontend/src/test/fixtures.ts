@@ -100,6 +100,7 @@ export const mockApiTodoItem: ApiTodoItem = {
     "Given an array of integers, return indices of two numbers.",
   difficulty_level: "Easy",
   added_at: "2025-03-01T10:00:00Z",
+  source: "manual",
   algorithms: ["Array"],
   is_completed: false,
 };
@@ -112,6 +113,7 @@ export const mockApiTodoItem2: ApiTodoItem = {
   problem_description: "Determine if the input string is valid.",
   difficulty_level: "Medium",
   added_at: "2025-03-02T10:00:00Z",
+  source: "study_plan",
   algorithms: ["Stack"],
   is_completed: false,
 };

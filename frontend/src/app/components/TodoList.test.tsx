@@ -96,6 +96,20 @@ describe("TodoList", () => {
     expect(screen.getByText("Stack")).toBeInTheDocument();
   });
 
+  it("shows source badge for manually added items", async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText("Two Sum")).toBeInTheDocument());
+    expect(screen.getByText("Added Manually")).toBeInTheDocument();
+  });
+
+  it("shows source badge for study plan items", async () => {
+    renderComponent();
+    await waitFor(() =>
+      expect(screen.getByText("Valid Parentheses")).toBeInTheDocument()
+    );
+    expect(screen.getByText("Study Plan")).toBeInTheDocument();
+  });
+
   it("renders problem links pointing to the correct route", async () => {
     renderComponent();
     await waitFor(() => expect(screen.getByText("Two Sum")).toBeInTheDocument());

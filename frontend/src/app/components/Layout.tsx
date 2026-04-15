@@ -38,7 +38,7 @@ export function Layout() {
 
   /** Handle user logout */
   const handleLogout = async () => {
-    await supabase.auth.signOut(); // Supabase logout
+    await supabase.auth.signOut();
     logout(); // clear local storage
     navigate("/login"); // redirect to login page
   };
