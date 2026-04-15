@@ -11,6 +11,14 @@ const STORAGE_KEYS = {
   CURRENT_USER: "pythonpractice_current_user",
 };
 
+export const AUTH_CHANGED_EVENT = "dailybits-auth-changed";
+
+function emitAuthChanged(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+  }
+}
+
 const defaultUsers: AppUser[] = [
   {
     id: "1",
@@ -153,8 +161,8 @@ export function clearCodeCache(problemId: string): void {
 
 // User Role
 export function getUserRole(): "user" | "administrator" {
-  const data = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
-  return (data as "user" | "administrator") || "user";
+  const currentUser = getCurrentUser();
+  return currentUser?.isAdmin ? "administrator" : "user";
 }
 
 export function setUserRole(role: "user" | "administrator"): void {
@@ -203,15 +211,14 @@ export function deleteUser(userId: string): void {
 }
 
 // Current User
-export function getCurrentUser(): AppUser {
+export function getCurrentUser(): AppUser | null {
   const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-  if (data) return JSON.parse(data);
-  const users = getUsers();
-  return users[0];
+  return data ? JSON.parse(data) : null;
 }
 
 export function setCurrentUser(user: AppUser): void {
   localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+  emitAuthChanged();
 }
 
 // log out
@@ -220,8 +227,10 @@ export function logout(): void {
   localStorage.removeItem("user");
   localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   localStorage.removeItem(STORAGE_KEYS.USER_ROLE);
+  emitAuthChanged();
 }
 
 export function clearCurrentUser(): void {
   localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  emitAuthChanged();
 }

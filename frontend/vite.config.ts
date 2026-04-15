@@ -35,6 +35,25 @@ export default defineConfig({
     },
   },
 
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ["react", "react-dom", "react-router"],
+          monaco: ["@monaco-editor/react", "monaco-editor"],
+          radix: [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-alert-dialog",
+            "@radix-ui/react-select",
+            "@radix-ui/react-scroll-area",
+            "@radix-ui/react-avatar",
+            "@radix-ui/react-slot",
+          ],
+        },
+      },
+    },
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ["**/*.svg", "**/*.csv"],
 });

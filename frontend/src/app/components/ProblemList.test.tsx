@@ -36,9 +36,8 @@ vi.mock("../utils/api", async (importOriginal) => {
   };
 });
 
-// getUserRole reads from localStorage and determines whether the admin
-// "Manage Problems" link is shown. Default to 'user'; override per-test for
-// the admin visibility test.
+// Keep storage helpers real; we only stub getUserRole for legacy tests in
+// other components. ProblemList now checks currentUser.isAdmin directly.
 vi.mock("../utils/storage", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../utils/storage")>();
   return { ...actual, getUserRole: vi.fn().mockReturnValue("user") };
@@ -117,6 +116,7 @@ describe("ProblemList", () => {
   // the loading state for the duration of this test.
   it("shows a loading indicator before data arrives", () => {
     vi.mocked(api.fetchProblems).mockReturnValue(new Promise(() => {}));
+    vi.mocked(api.fetchTodoItemsApi).mockReturnValue(new Promise(() => {}));
     renderComponent();
     expect(screen.getByText("Loading problems...")).toBeInTheDocument();
   });
@@ -399,8 +399,8 @@ describe("ProblemList", () => {
 
   // ── Admin view ────────────────────────────────────────────────────────────
 
-  // The "Manage Problems" link is conditionally rendered based on the user's
-  // role stored in localStorage via getUserRole().
+  // The "Manage Problems" link is conditionally rendered based on the logged-in
+  // user's currentUser.isAdmin flag in localStorage.
   it("does not show Manage Problems button for regular users", async () => {
     renderComponent();
     await waitFor(() => expect(screen.getByText("Two Sum")).toBeInTheDocument());
@@ -408,8 +408,18 @@ describe("ProblemList", () => {
   });
 
   it("shows Manage Problems button for administrator role", async () => {
-    const storage = await import("../utils/storage");
-    vi.mocked(storage.getUserRole).mockReturnValue("administrator");
+    localStorage.setItem(
+      "pythonpractice_current_user",
+      JSON.stringify({
+        id: "1",
+        accountNumber: 1,
+        email: "admin@example.com",
+        firstName: "Admin",
+        lastName: "User",
+        registerDate: "2025-01-01",
+        isAdmin: true,
+      })
+    );
     renderComponent();
     await waitFor(() =>
       expect(screen.getByText("Manage Problems")).toBeInTheDocument()

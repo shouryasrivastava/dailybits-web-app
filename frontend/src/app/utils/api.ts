@@ -8,6 +8,7 @@
  */
 
 import { Problem, Difficulty, AppUser, TodoItem } from "../types";
+import { logout } from "./storage";
 
 const API_BASE = "http://localhost:8000";
 
@@ -33,6 +34,9 @@ async function apiFetch<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      logout();
+    }
     throw new Error(
       body.error || body.message || `Request failed (${res.status})`,
     );
@@ -104,7 +108,8 @@ export interface ApiProblemListResponse {
 }
 
 export function fetchProblems(page = 1): Promise<ApiProblemListResponse> {
-  return apiFetch(`/problems/?page=${page}`);
+  // Request larger pages to reduce sequential round trips from the UI.
+  return apiFetch(`/problems/?page=${page}&page_size=100`);
 }
 
 export function fetchAdminProblems(): Promise<ApiProblemListItem[]> {

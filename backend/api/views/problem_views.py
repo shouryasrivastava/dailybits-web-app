@@ -9,25 +9,47 @@ def list_problems(request):
         page = int(request.GET.get('page', 1))
     except (ValueError, TypeError):
         return JsonResponse({"error": "Invalid page parameter"}, status=400)
-    page_size = 20
+    try:
+        requested_page_size = int(request.GET.get('page_size', 20))
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Invalid page_size parameter"}, status=400)
+    page_size = max(1, min(requested_page_size, 100))
     offset = (page - 1) * page_size
 
     with connection.cursor() as cursor:
         cursor.execute("""
+            WITH paged AS (
+                SELECT
+                    p.problem_id,
+                    p.problem_title,
+                    p.problem_description,
+                    p.difficulty_level,
+                    p.estimate_time_baseline
+                FROM problem p
+                WHERE p.is_published = TRUE
+                ORDER BY p.problem_id
+                LIMIT %s OFFSET %s
+            )
             SELECT
-                p.problem_id,
-                p.problem_title,
-                p.problem_description,
-                p.difficulty_level,
-                p.estimate_time_baseline,
-                COALESCE(array_agg(a.algorithm_name) FILTER (WHERE a.algorithm_name IS NOT NULL), '{}') AS algorithms
-            FROM problem p
-            LEFT JOIN problem_algorithm pa ON p.problem_id = pa.problem_id
+                paged.problem_id,
+                paged.problem_title,
+                paged.problem_description,
+                paged.difficulty_level,
+                paged.estimate_time_baseline,
+                COALESCE(
+                    array_agg(a.algorithm_name) FILTER (WHERE a.algorithm_name IS NOT NULL),
+                    '{}'
+                ) AS algorithms
+            FROM paged
+            LEFT JOIN problem_algorithm pa ON paged.problem_id = pa.problem_id
             LEFT JOIN algorithm a ON pa.algorithm_id = a.algorithm_id
-            WHERE p.is_published = TRUE
-            GROUP BY p.problem_id, p.problem_title, p.problem_description, p.difficulty_level, p.estimate_time_baseline
-            ORDER BY p.problem_id
-            LIMIT %s OFFSET %s
+            GROUP BY
+                paged.problem_id,
+                paged.problem_title,
+                paged.problem_description,
+                paged.difficulty_level,
+                paged.estimate_time_baseline
+            ORDER BY paged.problem_id
         """, [page_size, offset])
         columns = [col[0] for col in cursor.description] # type: ignore
         rows = cursor.fetchall()

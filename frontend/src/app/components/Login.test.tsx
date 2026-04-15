@@ -9,6 +9,7 @@ const {
   mockSaveToken,
   mockSaveUser,
   mockSetCurrentUser,
+  mockLogout,
   mockSignInWithPassword,
 } = vi.hoisted(() => {
   return {
@@ -16,6 +17,7 @@ const {
     mockSaveToken: vi.fn(),
     mockSaveUser: vi.fn(),
     mockSetCurrentUser: vi.fn(),
+    mockLogout: vi.fn(),
     mockSignInWithPassword: vi.fn(),
   };
 });
@@ -44,6 +46,7 @@ vi.mock("../utils/auth", () => ({
 
 vi.mock("../utils/storage", () => ({
   setCurrentUser: mockSetCurrentUser,
+  logout: mockLogout,
 }));
 
 describe("Login", () => {
