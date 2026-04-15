@@ -18,7 +18,6 @@ export default function Login() {
     setMessage("");
 
     try {
-      // 1. Supabase login
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -31,17 +30,14 @@ export default function Login() {
       }
 
       const token = data.session?.access_token;
-
       if (!token) {
         setMessage("Login failed: missing access token");
         setLoading(false);
         return;
       }
 
-      // 2. Save token
       saveToken(token);
 
-      // 3. Request Django /auth/me/
       const res = await fetch("http://127.0.0.1:8000/auth/me/", {
         method: "GET",
         headers: {
@@ -49,7 +45,6 @@ export default function Login() {
           "Content-Type": "application/json",
         },
       });
-
       const userData = await res.json();
 
       if (!res.ok || !userData.success) {
@@ -58,7 +53,6 @@ export default function Login() {
         return;
       }
 
-      // 4. Save user
       saveUser(userData);
       setCurrentUser(userData);
 

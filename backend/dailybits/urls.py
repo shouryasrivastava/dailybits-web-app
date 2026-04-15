@@ -17,7 +17,7 @@ Including another URLconf
 from django.urls import path
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from api.views.auth_views import signup, login, get_profile, update_profile, list_users, delete_user
+from api.views.auth_views import signup, login, auth_me, get_profile, update_profile, list_users, delete_user
 from api.views.problem_views import list_problems, get_single_problem, submit_problem
 from api.views.submission_views import list_submissions
 from api.views.chat_views import generate_plan, accept_plan, chat_history, check_code
@@ -42,6 +42,7 @@ urlpatterns = [
     # Authentication
     path("auth/signup/", signup),
     path("auth/login/", login),
+    path("auth/me/", auth_me),
 
     # User Profile
     path("profile/<int:account_number>/", get_profile),

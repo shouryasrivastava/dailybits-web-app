@@ -3,10 +3,6 @@
 -- Database: PostgreSQL (for Supabase)
 -- ============================================
 
-DROP DATABASE IF EXISTS dailybits;
-CREATE DATABASE dailybits;
-
-\c dailybits;
 
 -- ============================================
 -- USER & ACCOUNT TABLES

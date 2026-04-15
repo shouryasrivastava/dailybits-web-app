@@ -147,14 +147,18 @@ export function TodoList() {
                             {item.difficulty_level}
                           </Badge>
 
-                          {item.source === "study_plan" && (
-                            <Badge
-                              variant="outline"
-                              className="bg-sky-50 text-sky-700 border-sky-200"
-                            >
-                              Study Plan
-                            </Badge>
-                          )}
+                          <Badge
+                            variant="outline"
+                            className={
+                              item.source === "study_plan"
+                                ? "bg-orange-50 text-orange-700 border-orange-200"
+                                : "bg-sky-50 text-sky-700 border-sky-200"
+                            }
+                          >
+                            {item.source === "study_plan"
+                              ? "Study Plan"
+                              : "Added Manually"}
+                          </Badge>
                         </div>
 
                         <p className="text-sm text-neutral-600 mb-3 line-clamp-2">

@@ -1,17 +1,74 @@
 """
 - POST /auth/signup/            create a new user account
 - POST /auth/login/             authenticate user (email + password), return profile & account info
+- GET  /auth/me/                verify Supabase JWT and return/provision app profile
 - GET  /profile/{id}/           fetch user profile and account info by account number
 - POST /profile/{id}/update/    update user first/last name, return updated profile
 - GET  /users/                  list all users with profile + account info
 - DELETE /users/{id}/           delete a user by account number
 """
+import os
+from typing import Optional
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db import connection
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password, check_password
+import jwt
+import httpx
+
+
+def _parse_name_from_email(email: str) -> tuple[str, str]:
+    local = (email or "").split("@")[0].strip()
+    if not local:
+        return ("User", "Member")
+
+    parts = [p for p in local.replace(".", " ").replace("_", " ").split() if p]
+    if len(parts) == 1:
+        first = parts[0][:30]
+        return (first or "User", "Member")
+    return (parts[0][:30], parts[-1][:30])
+
+
+def _extract_bearer_token(request) -> Optional[str]:
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    token = auth[len("Bearer "):].strip()
+    return token or None
+
+
+def _decode_supabase_token(token: str):
+    secret = os.getenv("SUPABASE_JWT_SECRET")
+    if not secret:
+        raise RuntimeError("SUPABASE_JWT_SECRET is not configured")
+
+    return jwt.decode(
+        token,
+        secret,
+        algorithms=["HS256"],
+        options={"verify_aud": False},
+    )
+
+
+def _fetch_supabase_user(token: str):
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_PUBLISHABLE_KEY")
+    if not supabase_url or not supabase_key:
+        return None
+
+    with httpx.Client(timeout=8.0) as client:
+        res = client.get(
+            f"{supabase_url.rstrip('/')}/auth/v1/user",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "apikey": supabase_key,
+            },
+        )
+    if res.status_code != 200:
+        return None
+    return res.json()
 
 @api_view(['POST'])
 def signup(request):
@@ -116,6 +173,103 @@ def login(request):
         "accountNumber": profile[2],
         "isStudent": profile[3],
         "isAdmin": profile[4],
+    })
+
+
+@api_view(['GET'])
+def auth_me(request):
+    token = _extract_bearer_token(request)
+    if not token:
+        return Response({"success": False, "message": "Missing bearer token"}, status=401)
+
+    supabase_user = _fetch_supabase_user(token)
+    claims = None
+    if supabase_user:
+        claims = {
+            "email": supabase_user.get("email"),
+            "user_metadata": supabase_user.get("user_metadata") or {},
+        }
+    else:
+        try:
+            claims = _decode_supabase_token(token)
+        except RuntimeError as exc:
+            return Response({
+                "success": False,
+                "message": (
+                    f"{exc}. Set SUPABASE_URL and SUPABASE_ANON_KEY on backend "
+                    "or provide the real JWT signing secret (not sb_secret_ key)."
+                ),
+            }, status=500)
+        except jwt.PyJWTError as exc:
+            return Response({"success": False, "message": f"Invalid or expired token: {exc}"}, status=401)
+
+    email = claims.get("email") if claims else None
+    if not email:
+        return Response({"success": False, "message": "Token missing email claim"}, status=400)
+
+    metadata = claims.get("user_metadata") or {}
+    first_name = (metadata.get("first_name") or metadata.get("given_name") or "").strip()
+    last_name = (metadata.get("last_name") or metadata.get("family_name") or "").strip()
+
+    if not first_name or not last_name:
+        default_first, default_last = _parse_name_from_email(email)
+        first_name = first_name or default_first
+        last_name = last_name or default_last
+
+    first_name = first_name[:30]
+    last_name = last_name[:30]
+
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT
+                    p.first_name,
+                    p.last_name,
+                    a.account_number,
+                    a.student_flag,
+                    a.admin_flag,
+                    a.register_date
+                FROM user_profile p
+                JOIN account a ON p.email = a.email
+                WHERE p.email = %s
+            """, [email])
+            row = cursor.fetchone()
+
+        if row:
+            return Response({
+                "success": True,
+                "email": email,
+                "firstName": row[0],
+                "lastName": row[1],
+                "accountNumber": row[2],
+                "isStudent": row[3],
+                "isAdmin": row[4],
+                "registerDate": row[5],
+            })
+
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO user_profile (email, first_name, last_name)
+                VALUES (%s, %s, %s)
+            """, [email, first_name, last_name])
+
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO account (email, register_date, student_flag, admin_flag)
+                VALUES (%s, %s, %s, %s)
+                RETURNING account_number, register_date
+            """, [email, timezone.localdate(), True, False])
+            account_number, register_date = cursor.fetchone()
+
+    return Response({
+        "success": True,
+        "email": email,
+        "firstName": first_name,
+        "lastName": last_name,
+        "accountNumber": account_number,
+        "isStudent": True,
+        "isAdmin": False,
+        "registerDate": register_date,
     })
 
 

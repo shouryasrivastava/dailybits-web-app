@@ -3,7 +3,19 @@
 -- Sample Data (PostgreSQL)
 -- ============================================
 
-\c dailybits;
+-- Reset sequences so auto-generated IDs start at 1
+-- (dependent tables reference hardcoded IDs)
+ALTER SEQUENCE account_account_number_seq RESTART WITH 1;
+ALTER SEQUENCE problem_problem_id_seq RESTART WITH 1;
+ALTER SEQUENCE solution_solution_id_seq RESTART WITH 1;
+ALTER SEQUENCE problem_example_example_id_seq RESTART WITH 1;
+ALTER SEQUENCE problem_constraint_constraint_id_seq RESTART WITH 1;
+ALTER SEQUENCE algorithm_algorithm_id_seq RESTART WITH 1;
+ALTER SEQUENCE submission_submission_id_seq RESTART WITH 1;
+ALTER SEQUENCE study_plan_plan_id_seq RESTART WITH 1;
+ALTER SEQUENCE todo_item_todo_id_seq RESTART WITH 1;
+ALTER SEQUENCE study_note_note_id_seq RESTART WITH 1;
+ALTER SEQUENCE chat_query_query_id_seq RESTART WITH 1;
 
 -- ============================================
 -- USER DATA
@@ -750,9 +762,9 @@ INSERT INTO problem (difficulty_level, problem_title, problem_description, start
 
 (
     'Easy',
-    'Majority Element',
-    $$Find the element that appears more than half the array length.$$,
-    $$def majority_element(nums: list[int]) -> int:
+    'Maximum Number of Balloons',
+    $$Given a string text, return the maximum number of instances of the word "balloon" that can be formed using each character at most once.$$,
+    $$def max_number_of_balloons(text: str) -> int:
     # Write your code here
     pass$$,
     TRUE,
@@ -783,9 +795,9 @@ INSERT INTO problem (difficulty_level, problem_title, problem_description, start
 
 (
     'Easy',
-    'Best Time to Buy and Sell Stock',
-    $$Compute max profit from at most one transaction.$$,
-    $$def best_time_to_buy_and_sell_stock(prices: list[int]) -> int:
+    'Maximum Difference Between Increasing Elements',
+    $$Given an integer array nums, return the maximum difference nums[j] - nums[i] such that i < j and nums[i] < nums[j]. Return -1 if no such pair exists.$$,
+    $$def maximum_difference(nums: list[int]) -> int:
     # Write your code here
     pass$$,
     TRUE,
@@ -807,7 +819,7 @@ INSERT INTO problem (difficulty_level, problem_title, problem_description, start
     'Medium',
     '3Sum',
     $$Find all unique triplets that sum to zero.$$,
-    $$def 3sum(nums: list[int]) -> list[list[int]]:
+    $$def threeSum(nums: list[int]) -> list[list[int]]:
     # Write your code here
     pass$$,
     TRUE,
@@ -818,7 +830,7 @@ INSERT INTO problem (difficulty_level, problem_title, problem_description, start
     'Medium',
     '3Sum Closest',
     $$Return sum of three integers closest to target.$$,
-    $$def 3sum_closest(nums: list[int], target: int) -> int:
+    $$def threeSumClosest(nums: list[int], target: int) -> int:
     # Write your code here
     pass$$,
     TRUE,
@@ -870,7 +882,7 @@ INSERT INTO problem (difficulty_level, problem_title, problem_description, start
 ),
 
 (
-    'Easy',
+    'Medium',
     'Search in Rotated Sorted Array',
     $$Find index of target in rotated sorted array with distinct values.$$,
     $$def search_in_rotated_sorted_array(nums: list[int], target: int) -> int:
@@ -892,7 +904,7 @@ INSERT INTO problem (difficulty_level, problem_title, problem_description, start
 ),
 
 (
-    'Easy',
+    'Medium',
     'Kth Largest Element in an Array',
     $$Find the kth largest element in an unsorted array.$$,
     $$def kth_largest_element_in_an_array(nums: list[int], k: int) -> int:
@@ -1025,9 +1037,9 @@ INSERT INTO problem (difficulty_level, problem_title, problem_description, start
 
 (
     'Medium',
-    'Find the Duplicate Substring',
-    $$Find any duplicated substring of length at least k? (placeholder problem for practice.)$$,
-    $$def find_the_duplicate_substring(s: str, k: int) -> bool:
+    'Repeated Substring of Length K',
+    $$Given a string s and integer k, return true if some substring of length exactly k appears at least twice.$$,
+    $$def has_repeated_substring_of_length_k(s: str, k: int) -> bool:
     # Write your code here
     pass$$,
     TRUE,
@@ -1058,9 +1070,9 @@ INSERT INTO problem (difficulty_level, problem_title, problem_description, start
 
 (
     'Medium',
-    'Longest Substring Without Repeating Characters',
-    $$Find length of longest substring without repeating chars.$$,
-    $$def longest_substring_without_repeating_characters(s: str) -> int:
+    'Longest Substring with At Most Two Distinct Characters',
+    $$Given a string s, return the length of the longest substring that contains at most two distinct characters.$$,
+    $$def length_of_longest_substring_two_distinct(s: str) -> int:
     # Write your code here
     pass$$,
     TRUE,
@@ -1068,7 +1080,7 @@ INSERT INTO problem (difficulty_level, problem_title, problem_description, start
 ),
 
 (
-    'Hard',
+    'Medium',
     'Minimum Number of Subarrays to Delete',
     $$Find minimum subarray removals to make array non-decreasing.$$,
     $$def minimum_number_of_subarrays_to_delete(nums: list[int]) -> int:
@@ -1090,7 +1102,7 @@ INSERT INTO problem (difficulty_level, problem_title, problem_description, start
 ),
 
 (
-    'Hard',
+    'Medium',
     'Minimum Size Subarray Sum',
     $$Find minimal length subarray with sum at least target.$$,
     $$def minimum_size_subarray_sum(target: int, nums: list[int]) -> int:
@@ -1123,7 +1135,7 @@ INSERT INTO problem (difficulty_level, problem_title, problem_description, start
 ),
 
 (
-    'Easy',
+    'Medium',
     'Maximum Product Subarray',
     $$Return maximum product of a contiguous non-empty subarray.$$,
     $$def maximum_product_subarray(nums: list[int]) -> int:
@@ -1145,7 +1157,7 @@ INSERT INTO problem (difficulty_level, problem_title, problem_description, start
 ),
 
 (
-    'Easy',
+    'Medium',
     'Best Time to Buy and Sell Stock with Cooldown',
     $$Maximize profit with one-day cooldown between sells and next buy.$$,
     $$def best_time_to_buy_and_sell_stock_with_cooldown(prices: list[int]) -> int:
@@ -1667,9 +1679,9 @@ INSERT INTO problem_example (problem_id, example_input, example_output, example_
 INSERT INTO problem_example (problem_id, example_input, example_output, example_explanation) VALUES
 (
     64,
-    $$Input: [3,2,3]$$,
-    $$Output: 3$$,
-    $$3 appears 2 times out of 3.$$
+    $$Input: text = "loonbalxballpoon"$$,
+    $$Output: 2$$,
+    $$The letters can form "balloon" two times.$$
 )
 ;
 INSERT INTO problem_example (problem_id, example_input, example_output, example_explanation) VALUES
@@ -1691,9 +1703,9 @@ INSERT INTO problem_example (problem_id, example_input, example_output, example_
 INSERT INTO problem_example (problem_id, example_input, example_output, example_explanation) VALUES
 (
     67,
-    $$Input: [7,1,5,3,6,4]$$,
-    $$Output: 5$$,
-    $$Buy at 1, sell at 6.$$
+    $$Input: nums = [7,1,5,4]$$,
+    $$Output: 4$$,
+    $$Choose i = 1 (value 1) and j = 2 (value 5).$$
 )
 ;
 INSERT INTO problem_example (problem_id, example_input, example_output, example_explanation) VALUES
@@ -1869,7 +1881,7 @@ INSERT INTO problem_example (problem_id, example_input, example_output, example_
     89,
     $$Input: s = "banana", k = 3$$,
     $$Output: true$$,
-    $$Substring "ana" appears at least twice.$$
+    $$Substring "ana" appears at indices [1..3] and [3..5].$$
 )
 ;
 INSERT INTO problem_example (problem_id, example_input, example_output, example_explanation) VALUES
@@ -1891,17 +1903,17 @@ INSERT INTO problem_example (problem_id, example_input, example_output, example_
 INSERT INTO problem_example (problem_id, example_input, example_output, example_explanation) VALUES
 (
     92,
-    $$Input: s = "abcabcbb"$$,
+    $$Input: s = "eceba"$$,
     $$Output: 3$$,
-    NULL
+    $$Substring "ece" has length 3 and at most two distinct characters.$$
 )
 ;
 INSERT INTO problem_example (problem_id, example_input, example_output, example_explanation) VALUES
 (
     93,
     $$Input: [1,3,2,2,2,5]$$,
-    $$Output: 0$$,
-    $$Already non-decreasing after one check pass.$$
+    $$Output: 1$$,
+    $$Remove [3] to get [1,2,2,2,5], which is non-decreasing.$$
 )
 ;
 INSERT INTO problem_example (problem_id, example_input, example_output, example_explanation) VALUES
@@ -1957,7 +1969,7 @@ INSERT INTO problem_example (problem_id, example_input, example_output, example_
     100,
     $$Input: [1,2,3,0,2]$$,
     $$Output: 3$$,
-    $$Buy day1 sell day3, cooldown day4, buy day5 sell day5 => 3.$$
+    $$Buy at 1, sell at 2, cooldown one day, then buy at 0 and sell at 2 (total 3).$$
 )
 ;
 
@@ -2091,13 +2103,13 @@ INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
 INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
 (63, $$1 <= len(s) <= 10^5, lowercase letters only.$$);
 INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
-(64, $$1 <= len(nums) <= 5 * 10^4.$$);
+(64, $$1 <= len(text) <= 10^4 and text consists of lowercase English letters.$$);
 INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
 (65, $$1 <= len(nums) <= 3*10^4 and sorted non-decreasingly.$$);
 INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
 (66, $$-2^31 <= nums[i] <= 2^31 - 1 and len <= 3*10^4.$$);
 INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
-(67, $$1 <= len(prices) <= 10^5 and 0 <= price <= 10^4.$$);
+(67, $$2 <= len(nums) <= 10^5 and 1 <= nums[i] <= 10^9.$$);
 INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
 (68, $$Numbers are sorted non-decreasing and length 2..3*10^4.$$);
 INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
@@ -2147,7 +2159,7 @@ INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
 INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
 (91, $$1 <= len(s) <= 10^5 and 1 <= len(t) <= len(s).$$);
 INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
-(92, $$Length up to 5*10^4.$$);
+(92, $$1 <= len(s) <= 5 * 10^4 and s contains English letters.$$);
 INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
 (93, $$1 <= len(nums) <= 10^5 and integers in [-10^9,10^9].$$);
 INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
@@ -2168,7 +2180,7 @@ INSERT INTO problem_constraint (problem_id, problem_constraint) VALUES
 -- ============================================
 -- SOLUTION DATA 
 -- ============================================
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     1,
     $$def twoSum(nums: List[int], target: int) -> List[int]:
@@ -2181,11 +2193,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return []$$,
     'Use a hash map to track complements in one pass.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     2,
     $$def isPalindrome(s: str) -> bool:
@@ -2193,22 +2204,20 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return cleaned == cleaned[::-1]$$,
     'Normalize the string and compare with its reverse.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     3,
     $$def containsDuplicate(nums: List[int]) -> bool:
     return len(nums) != len(set(nums))$$,
     'A set removes duplicates; compare sizes.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     4,
     $$def productExceptSelf(nums: List[int]) -> List[int]:
@@ -2225,11 +2234,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return result$$,
     'Prefix and suffix products avoid division.',
     'O(n)',
-    'O(1) excluding output array',
-    TRUE
+    'O(1) excluding output array'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     5,
     $$def coinChange(coins: List[int], amount: int) -> int:
@@ -2242,11 +2250,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return -1 if dp[amount] == amount + 1 else dp[amount]$$,
     'Bottom-up DP builds minimum coins for each amount.',
     'O(n * m)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     6,
     $$def isValid(s: str) -> bool:
@@ -2261,11 +2268,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return not stack$$,
     'Use a stack to validate bracket matching.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     7,
     $$class MyQueue:
@@ -2293,11 +2299,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
         return not self.in_stack and not self.out_stack$$,
     'Transfer from input to output stack when needed.',
     'O(1) amortized',
-    'O(n)',
-    FALSE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     8,
     $$def lengthOfLongestSubstring(s: str) -> int:
@@ -2312,11 +2317,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return best$$,
     'Sliding window with last-seen indices.',
     'O(n)',
-    'O(min(n, alphabet))',
-    FALSE
+    'O(min(n, alphabet))'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     9,
     $$def minDistance(word1: str, word2: str) -> int:
@@ -2335,11 +2339,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return dp[n][m]$$,
     'Classic DP on prefixes of both strings.',
     'O(n * m)',
-    'O(n * m)',
-    FALSE
+    'O(n * m)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     10,
     $$def maxDepth(root: Optional[TreeNode]) -> int:
@@ -2348,11 +2351,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return 1 + max(maxDepth(root.left), maxDepth(root.right))$$,
     'Recursive DFS returns maximum depth.',
     'O(n)',
-    'O(h)',
-    TRUE
+    'O(h)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     11,
     $$def maxProfit(prices: List[int]) -> int:
@@ -2364,22 +2366,20 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return max_profit$$,
     'Track minimum price seen so far and calculate profit for each day.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     12,
     $$def isAnagram(s: str, t: str) -> bool:
     return sorted(s) == sorted(t)$$,
     'Sort both strings and compare. Alternative: use Counter.',
     'O(n log n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     13,
     $$def majorityElement(nums: List[int]) -> int:
@@ -2387,11 +2387,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return Counter(nums).most_common(1)[0][0]$$,
     'Use hash map to count frequencies. Boyer-Moore is O(1) space alternative.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     14,
     $$def moveZeroes(nums: List[int]) -> None:
@@ -2402,11 +2401,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
             left += 1$$,
     'Two pointers: left tracks position for next non-zero, right scans array.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     15,
     $$def merge(nums1: List[int], m: int, nums2: List[int], n: int) -> None:
@@ -2421,11 +2419,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
         k -= 1$$,
     'Merge from back to avoid overwriting elements in nums1.',
     'O(m + n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     16,
     $$def reverseString(s: List[str]) -> None:
@@ -2436,11 +2433,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
         right -= 1$$,
     'Two pointers swap characters from both ends.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     17,
     $$def firstUniqChar(s: str) -> int:
@@ -2452,11 +2448,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return -1$$,
     'Count all characters, then find first with count 1.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     18,
     $$class MinStack:
@@ -2480,11 +2475,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
         return self.min_stack[-1]$$,
     'Maintain parallel stack tracking minimum at each level.',
     'O(1) all operations',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     19,
     $$def plusOne(digits: List[int]) -> List[int]:
@@ -2496,11 +2490,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return [1] + digits$$,
     'Handle carry from right to left. If all 9s, prepend 1.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     20,
     $$def removeDuplicates(nums: List[int]) -> int:
@@ -2514,11 +2507,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return left$$,
     'Two pointers: left tracks next unique position.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     21,
     $$def invertTree(root: Optional[TreeNode]) -> Optional[TreeNode]:
@@ -2530,11 +2522,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return root$$,
     'Recursively swap left and right subtrees.',
     'O(n)',
-    'O(h)',
-    TRUE
+    'O(h)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     22,
     $$def longestCommonPrefix(strs: List[str]) -> str:
@@ -2548,11 +2539,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return strs[0]$$,
     'Compare characters column by column across all strings.',
     'O(S) where S is sum of all characters',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     23,
     $$def pivotIndex(nums: List[int]) -> int:
@@ -2565,11 +2555,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return -1$$,
     'Track left sum and compare with right sum at each index.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     24,
     $$def intersect(nums1: List[int], nums2: List[int]) -> List[int]:
@@ -2583,11 +2572,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return result$$,
     'Count elements in first array, then consume from second.',
     'O(m + n)',
-    'O(min(m, n))',
-    TRUE
+    'O(min(m, n))'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     25,
     $$def isSymmetric(root: Optional[TreeNode]) -> bool:
@@ -2602,11 +2590,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return mirror(root, root) if root else True$$,
     'Recursively check if left subtree mirrors right subtree.',
     'O(n)',
-    'O(h)',
-    TRUE
+    'O(h)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     26,
     $$def rotate(nums: List[int], k: int) -> None:
@@ -2614,11 +2601,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     nums[:] = nums[-k:] + nums[:-k]$$,
     'Slice and concatenate. Alternative: reverse three times.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     27,
     $$def groupAnagrams(strs: List[str]) -> List[List[str]]:
@@ -2630,11 +2616,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return list(groups.values())$$,
     'Group strings by their sorted character tuple.',
     'O(n * k log k) where k is max string length',
-    'O(n * k)',
-    TRUE
+    'O(n * k)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     28,
     $$def rob(nums: List[int]) -> int:
@@ -2644,11 +2629,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return curr$$,
     'DP: at each house, choose max of (skip, rob this + skip last).',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     29,
     $$def maxArea(height: List[int]) -> int:
@@ -2664,11 +2648,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return max_area$$,
     'Two pointers: move pointer at shorter height inward.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     30,
     $$def dailyTemperatures(temperatures: List[int]) -> List[int]:
@@ -2683,11 +2666,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return result$$,
     'Monotonic decreasing stack stores indices of unresolved days.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     31,
     $$def maxSubArray(nums: List[int]) -> int:
@@ -2698,11 +2680,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return max_sum$$,
     'Kadane algorithm: track current subarray sum, reset if negative.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     32,
     $$def levelOrder(root: Optional[TreeNode]) -> List[List[int]]:
@@ -2724,11 +2705,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return result$$,
     'BFS using queue, process each level separately.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     33,
     $$def topKFrequent(nums: List[int], k: int) -> List[int]:
@@ -2738,11 +2718,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return heapq.nlargest(k, count.keys(), key=count.get)$$,
     'Count frequencies, then use heap to find top k.',
     'O(n log k)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     34,
     $$def lengthOfLIS(nums: List[int]) -> int:
@@ -2754,11 +2733,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return max(dp)$$,
     'DP: dp[i] = longest LIS ending at i. O(n log n) with binary search possible.',
     'O(n^2)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     35,
     $$def findPeakElement(nums: List[int]) -> int:
@@ -2772,11 +2750,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return left$$,
     'Binary search: move toward higher neighbor.',
     'O(log n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     36,
     $$def characterReplacement(s: str, k: int) -> int:
@@ -2793,11 +2770,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return result$$,
     'Sliding window: track most frequent char, shrink if replacements exceed k.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     37,
     $$class MyCircularQueue:
@@ -2838,11 +2814,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
         return self.size == self.capacity$$,
     'Use fixed array with front pointer and size tracking.',
     'O(1) all operations',
-    'O(k)',
-    TRUE
+    'O(k)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     38,
     $$def canJump(nums: List[int]) -> bool:
@@ -2854,11 +2829,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return True$$,
     'Greedy: track furthest reachable index.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     39,
     $$def isValidBST(root: Optional[TreeNode]) -> bool:
@@ -2872,11 +2846,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return validate(root)$$,
     'Recursively validate with min/max bounds for each subtree.',
     'O(n)',
-    'O(h)',
-    TRUE
+    'O(h)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     40,
     $$def decodeString(s: str) -> str:
@@ -2896,11 +2869,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return ''.join(stack)$$,
     'Use stack to handle nested encodings.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     41,
     $$def isMatch(s: str, p: str) -> bool:
@@ -2921,11 +2893,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return dp[m][n]$$,
     'DP matching prefixes. Handle * as zero or more of preceding.',
     'O(m * n)',
-    'O(m * n)',
-    FALSE
+    'O(m * n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     42,
     $$def findMedianSortedArrays(nums1: List[int], nums2: List[int]) -> float:
@@ -2951,11 +2922,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
             left = partition1 + 1$$,
     'Binary search on smaller array to find partition.',
     'O(log(min(m, n)))',
-    'O(1)',
-    FALSE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     43,
     $$def longestValidParentheses(s: str) -> int:
@@ -2973,11 +2943,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return max_len$$,
     'Stack tracks indices. Update length when valid substring found.',
     'O(n)',
-    'O(n)',
-    FALSE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     44,
     $$def minWindow(s: str, t: str) -> str:
@@ -3004,11 +2973,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return "" if min_len == float('inf') else s[min_left:min_left + min_len]$$,
     'Sliding window with frequency tracking.',
     'O(m + n)',
-    'O(m + n)',
-    FALSE
+    'O(m + n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     45,
     $$def maxPathSum(root: Optional[TreeNode]) -> int:
@@ -3026,11 +2994,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return max_sum$$,
     'Recursively compute max path through each node.',
     'O(n)',
-    'O(h)',
-    FALSE
+    'O(h)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     46,
     $$def largestRectangleArea(heights: List[int]) -> int:
@@ -3045,11 +3012,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return max_area$$,
     'Monotonic stack to find boundaries for each bar.',
     'O(n)',
-    'O(n)',
-    FALSE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     47,
     $$def trap(height: List[int]) -> int:
@@ -3071,11 +3037,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return water$$,
     'Two pointers: trap water based on lower max boundary.',
     'O(n)',
-    'O(1)',
-    FALSE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     48,
     $$def jump(nums: List[int]) -> int:
@@ -3090,11 +3055,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return jumps$$,
     'Greedy BFS: track furthest reach at each jump level.',
     'O(n)',
-    'O(1)',
-    FALSE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     49,
     $$def ladderLength(beginWord: str, endWord: str, wordList: List[str]) -> int:
@@ -3116,11 +3080,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return 0$$,
     'BFS on word graph. Try all single-letter transformations.',
     'O(M^2 * N) where M is word length, N is word count',
-    'O(M * N)',
-    FALSE
+    'O(M * N)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     50,
     $$def climbStairs(n: int) -> int:
@@ -3132,11 +3095,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return b$$,
     'Dynamic programming for each stair depends on previous two.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     51,
     $$def reverseList(head):
@@ -3150,11 +3112,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return prev$$,
     'Iteratively reverse pointers while traversing once.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     52,
     $$def addTwoNumbers(l1, l2):
@@ -3173,11 +3134,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return dummy.next$$,
     'Add digit-wise with carry until both lists and carry are exhausted.',
     'O(n + m)',
-    'O(max(n, m))',
-    TRUE
+    'O(max(n, m))'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     53,
     $$def mergeTwoLists(list1, list2):
@@ -3195,11 +3155,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return dummy.next$$,
     'Use a dummy node and attach the smaller node each step.',
     'O(n + m)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     54,
     $$def removeNthFromEnd(head, n):
@@ -3216,11 +3175,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return dummy.next$$,
     'Two pointers with fixed gap avoid needing one pass to count length first.',
     'O(L)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     55,
     $$def longestPalindrome(s: str) -> str:
@@ -3241,11 +3199,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return s[start:end+1]$$,
     'Expand around each center and track the longest bounds.',
     'O(n^2)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     56,
     $$def myAtoi(s: str) -> int:
@@ -3264,11 +3221,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return max(-2**31, min(sign * num, 2**31 - 1))$$,
     'Scan sign and digits once, then clamp to integer bounds.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     57,
     $$def mySqrt(x: int) -> int:
@@ -3285,11 +3241,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return hi$$,
     'Binary search first integer whose square is greater than x.',
     'O(log x)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     58,
     $$def isPowerOfFour(n: int) -> bool:
@@ -3300,22 +3255,20 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return n == 1$$,
     'Repeatedly divide by 4 and ensure final value is 1.',
     'O(log n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     59,
     $$def hammingDistance(x: int, y: int) -> int:
     return bin(x ^ y).count('1')$$,
     'XOR highlights differing positions; count set bits.',
     'O(log n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     60,
     $$def hammingWeight(n: int) -> int:
@@ -3326,11 +3279,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return cnt$$,
     'Brian Kernighan''s bit trick clears one set bit each loop.',
     'O(number of set bits)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     61,
     $$def missingNumber(nums: list[int]) -> int:
@@ -3339,11 +3291,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return total - sum(nums)$$,
     'Expected sum minus actual sum gives the missing value.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     62,
     $$def findDuplicate(nums: list[int]) -> int:
@@ -3355,11 +3306,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return -1$$,
     'Track seen values in a hash set and return first repeated.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     63,
     $$def firstUniqChar(s: str) -> int:
@@ -3371,32 +3321,28 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return -1$$,
     'Count occurrences then scan to find first with frequency 1.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     64,
-    $$def majorityElement(nums: list[int]) -> int:
-    count = 0
-    cand = 0
-    for v in nums:
-        if count == 0:
-            cand = v
-            count = 1
-        elif v == cand:
-            count += 1
-        else:
-            count -= 1
-    return cand$$,
-    'Boyer-Moore majority voting keeps a candidate with net dominance.',
+    $$def maxNumberOfBalloons(text: str) -> int:
+    from collections import Counter
+    cnt = Counter(text)
+    return min(
+        cnt['b'],
+        cnt['a'],
+        cnt['l'] // 2,
+        cnt['o'] // 2,
+        cnt['n']
+    )$$,
+    'Count required letters and divide l/o counts by two because they appear twice in "balloon".',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     65,
     $$def removeDuplicates(nums: list[int]) -> int:
@@ -3408,11 +3354,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return j$$,
     'Use write pointer and allow at most two equal copies of each number.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     66,
     $$def moveZeroesToFront(nums: list[int]) -> None:
@@ -3422,27 +3367,27 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
             nums.insert(0, nums.pop(i))$$,
     'Shift non-zero elements forward then fill zeros at the front. (Simple list-based implementation.)',
     'O(n^2)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     67,
-    $$def maxProfit(prices: list[int]) -> int:
-    minp = float('inf')
-    profit = 0
-    for p in prices:
-        minp = min(minp, p)
-        profit = max(profit, p - minp)
-    return profit$$,
-    'Track minimum buy price and best profit seen so far.',
+    $$def maximumDifference(nums: list[int]) -> int:
+    minv = nums[0]
+    best = -1
+    for v in nums[1:]:
+        if v > minv:
+            best = max(best, v - minv)
+        else:
+            minv = v
+    return best$$,
+    'Track the smallest value so far and maximize later differences; return -1 if no increase exists.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     68,
     $$def twoSum(numbers: list[int], target: int) -> list[int]:
@@ -3458,11 +3403,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return []$$,
     'Two-pointer move from both ends on sorted input.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     69,
     $$def threeSum(nums: list[int]) -> list[list[int]]:
@@ -3486,11 +3430,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return res$$,
     'Sort once, then fix i and two-sum with two pointers.',
     'O(n^2)',
-    'O(log n) or O(n)',
-    TRUE
+    'O(log n) or O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     70,
     $$def threeSumClosest(nums: list[int], target: int) -> int:
@@ -3511,11 +3454,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return best$$,
     'Sort then use two pointers for each pivot to minimize distance to target.',
     'O(n^2)',
-    'O(log n)',
-    TRUE
+    'O(log n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     71,
     $$def letterCombinations(digits: str) -> list[str]:
@@ -3532,11 +3474,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return res$$,
     'Build combinations by iterative expansion over each digit mapping.',
     'O(4^n)',
-    'O(4^n)',
-    TRUE
+    'O(4^n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     72,
     $$def generateParenthesis(n: int) -> list[str]:
@@ -3552,11 +3493,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return res$$,
     'Backtracking with open/close counts ensures only valid strings are built.',
     'O(Catalan(n))',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     73,
     $$def mergeTrees(root1, root2):
@@ -3570,11 +3510,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return root1$$,
     'DFS recursively merges nodes and reuses existing structure.',
     'O(n + m)',
-    'O(n + m)',
-    TRUE
+    'O(n + m)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     74,
     $$def hasPathSum(root, targetSum: int) -> bool:
@@ -3586,11 +3525,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return hasPathSum(root.left, targetSum) or hasPathSum(root.right, targetSum)$$,
     'Subtract node values on DFS and check at leaf nodes.',
     'O(n)',
-    'O(h)',
-    TRUE
+    'O(h)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     75,
     $$def search(nums: list[int], target: int) -> int:
@@ -3612,11 +3550,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return -1$$,
     'Identify the sorted half each iteration and narrow search accordingly.',
     'O(log n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     76,
     $$def findMin(nums: list[int]) -> int:
@@ -3630,11 +3567,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return nums[l]$$,
     'Compare mid to right boundary to locate the pivot region.',
     'O(log n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     77,
     $$def findKthLargest(nums: list[int], k: int) -> int:
@@ -3642,11 +3578,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return nums[k-1]$$,
     'Sorting places descending order and direct indexing returns kth largest.',
     'O(n log n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     78,
     $$class KthLargest:
@@ -3659,22 +3594,20 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
         return self.arr[-self.k]$$,
     'Keep the numbers sorted and read kth from the end.',
     'O(n log n) per add',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     79,
     $$def intersection(nums1: list[int], nums2: list[int]) -> list[int]:
     return list(set(nums1) & set(nums2))$$,
     'Use set intersection to capture unique common values.',
     'O(n + m)',
-    'O(n + m)',
-    TRUE
+    'O(n + m)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     80,
     $$def containsNearbyDuplicate(nums: list[int], k: int) -> bool:
@@ -3686,11 +3619,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return False$$,
     'Track last index per value and compare distance.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     81,
     $$def singleNumber(nums: list[int]) -> int:
@@ -3700,11 +3632,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return x$$,
     'XOR of all numbers cancels pairs and leaves unique value.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     82,
     $$def singleNumber(nums: list[int]) -> int:
@@ -3715,11 +3646,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return ones$$,
     'Use bitmask DP via two accumulators for counts modulo 3.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     83,
     $$def majorityElement(nums: list[int]) -> list[int]:
@@ -3740,11 +3670,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return [x for x in (cand1, cand2) if nums.count(x) > len(nums)//3]$$,
     'Extend Boyer-Moore to track up to two candidates, then verify.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     84,
     $$def sortColors(nums: list[int]) -> None:
@@ -3762,11 +3691,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
             high -= 1$$,
     'Use Dutch national flag three-way partitioning.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     85,
     $$def numIslands(grid: list[list[str]]) -> int:
@@ -3790,11 +3718,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return ans$$,
     'Flood fill each unvisited land cell and count components.',
     'O(m*n)',
-    'O(m*n)',
-    TRUE
+    'O(m*n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     86,
     $$def solve(board: list[list[str]]) -> None:
@@ -3816,11 +3743,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
             board[i][j] = 'O' if board[i][j] == '#' else 'X'$$,
     'Mark border-connected O first, then flip remaining O.',
     'O(m*n)',
-    'O(m*n)',
-    TRUE
+    'O(m*n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     87,
     $$def validPalindrome(s: str) -> bool:
@@ -3835,11 +3761,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return True$$,
     'On mismatch, test both skip-left and skip-right choices.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     88,
     $$def searchMatrix(matrix: list[list[int]], target: int) -> bool:
@@ -3859,14 +3784,13 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return False$$,
     'Flatten index space and run binary search on virtual array.',
     'O(log(m*n))',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     89,
-    $$def repeatedSubstringPattern(s: str, k: int) -> bool:
+    $$def has_repeated_substring_of_length_k(s: str, k: int) -> bool:
     if k > len(s):
         return False
     seen = set()
@@ -3878,22 +3802,20 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return False$$,
     'Hash every length-k substring and detect repeats.',
     'O(n*k)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     90,
     $$def findLadders(beginWord: str, endWord: str, wordList: list[str]) -> list[list[str]]:
     return []$$,
     'Use BFS for shortest distance and DFS for path reconstruction.',
     'O(M^2 * N)',
-    'O(M * N)',
-    TRUE
+    'O(M * N)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     91,
     $$def isSubsequence(s: str, t: str) -> bool:
@@ -3906,30 +3828,32 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return True$$,
     'Greedily match each character in order.',
     'O(n + m)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     92,
-    $$def lengthOfLongestSubstring(s: str) -> int:
-    seen = {}
+    $$def lengthOfLongestSubstringTwoDistinct(s: str) -> int:
+    freq = {}
     l = 0
     ans = 0
     for r, ch in enumerate(s):
-        if ch in seen and seen[ch] >= l:
-            l = seen[ch] + 1
-        seen[ch] = r
-        ans = max(ans, r-l+1)
+        freq[ch] = freq.get(ch, 0) + 1
+        while len(freq) > 2:
+            left_ch = s[l]
+            freq[left_ch] -= 1
+            if freq[left_ch] == 0:
+                del freq[left_ch]
+            l += 1
+        ans = max(ans, r - l + 1)
     return ans$$,
-    'Use sliding window and last seen index table.',
+    'Sliding window with character counts keeps at most two distinct characters.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     93,
     $$def findLengthOfShortestSubarray(nums: list[int]) -> int:
@@ -3954,11 +3878,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return ans$$,
     'Find longest already-sorted prefix/suffix and bridge with two pointers.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     94,
     $$def subarraySum(nums: list[int], k: int) -> int:
@@ -3974,11 +3897,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return ans$$,
     'Prefix sums with hashmap counts how many previous prefixes satisfy sum-k.',
     'O(n)',
-    'O(n)',
-    TRUE
+    'O(n)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     95,
     $$def minSubArrayLen(target: int, nums: list[int]) -> int:
@@ -3994,11 +3916,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return 0 if ans == float('inf') else ans$$,
     'Sliding window with positive numbers lets left pointer only move forward.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     96,
     $$def lengthOfLongestSubstringKDistinct(s: str, k: int) -> int:
@@ -4017,11 +3938,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return ans$$,
     'Adjust left bound whenever distinct count exceeds k.',
     'O(n)',
-    'O(k)',
-    TRUE
+    'O(k)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     97,
     $$def checkSubarraySum(nums: list[int], k: int) -> bool:
@@ -4043,11 +3963,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return False$$,
     'Prefix remainders equal implies subarray sum divisible by k.',
     'O(n)',
-    'O(k)',
-    TRUE
+    'O(k)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     98,
     $$def maxProduct(nums: list[int]) -> int:
@@ -4061,11 +3980,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return ans$$,
     'Track both max and min products since negatives flip roles.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     99,
     $$def maxSubarraySumCircular(nums: list[int]) -> int:
@@ -4083,11 +4001,10 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return max(maxSum, total - minSum)$$,
     'Use max subarray for linear and circular case via total-minSubarray.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
-INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity, is_published) VALUES
+INSERT INTO solution (problem_id, solution_code, solution_explanation, time_complexity, space_complexity) VALUES
 (
     100,
     $$def maxProfit(prices: list[int]) -> int:
@@ -4100,8 +4017,7 @@ INSERT INTO solution (problem_id, solution_code, solution_explanation, time_comp
     return max(sold, rest)$$,
     'State machine handles hold/sold/rest transitions.',
     'O(n)',
-    'O(1)',
-    TRUE
+    'O(1)'
 )
 ;
 INSERT INTO algorithm (algorithm_name) VALUES
@@ -4213,7 +4129,7 @@ FROM (
     (86, 'Breadth-First Search'),
     (87, 'Two Pointers'),
     (88, 'Binary Search'),
-    (89, 'String'),
+    (89, 'Hash Table'),
     (90, 'Breadth-First Search'),
     (91, 'Two Pointers'),
     (92, 'Sliding Window'),
@@ -4340,29 +4256,8 @@ INSERT INTO study_plan_problems (plan_id, problem_id, estimate_time_assigned) VA
     (8, 10, 18),
     (9, 4, 20);
 
-INSERT INTO study_plan_algorithm (plan_id, algorithm_id) VALUES
-    (1, 4),
-    (2, 2),
-    (3, 3),
-    (4, 1),
-    (5, 6),
-    (6, 5),
-    (7, 8),
-    (8, 9),
-    (9, 10),
-    (10, 1);
-
-INSERT INTO study_plan_difficulty (plan_id, difficulty_level) VALUES
-    (1, 'Medium'),
-    (2, 'Easy'),
-    (3, 'Easy'),
-    (4, 'Medium'),
-    (5, 'Medium'),
-    (6, 'Easy'),
-    (7, 'Hard'),
-    (8, 'Hard'),
-    (9, 'Easy'),
-    (10, 'Medium');
+-- Removed legacy inserts for dropped tables:
+-- study_plan_algorithm, study_plan_difficulty
 
 -- ============================================
 -- CHAT QUERY DATA 
@@ -4408,3 +4303,25 @@ INSERT INTO study_note (todo_id, account_number, note_content, created_at, updat
     (8, 7, 'Queue via two stacks: amortized O(1).', '2025-02-16 14:00:00', '2025-02-16 14:00:00'),
     (9, 8, 'Tree depth via DFS recursion.', '2025-02-17 14:15:00', '2025-02-17 14:15:00'),
     (10, 9, 'Revisit greedy strategies next week.', '2025-02-18 14:30:00', '2025-02-18 14:30:00');
+
+-- ============================================
+-- DML INTEGRITY ASSERTIONS
+-- ============================================
+DO $$
+BEGIN
+    IF (SELECT COUNT(*) FROM problem) <> 100 THEN
+        RAISE EXCEPTION 'Expected exactly 100 problems';
+    END IF;
+
+    IF (SELECT COUNT(DISTINCT problem_title) FROM problem) <> 100 THEN
+        RAISE EXCEPTION 'Problem titles must be unique (expected 100 distinct titles)';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM problem
+        WHERE problem_description ILIKE '%placeholder%'
+    ) THEN
+        RAISE EXCEPTION 'Problem descriptions cannot contain placeholder text';
+    END IF;
+END;
+$$;
