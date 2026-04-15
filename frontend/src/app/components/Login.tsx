@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { supabase } from "../utils/supabase";
 import { saveToken, saveUser } from "../utils/auth";
-import { setCurrentUser } from "../utils/storage";
+import { logout, setCurrentUser } from "../utils/storage";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -48,6 +48,7 @@ export default function Login() {
       const userData = await res.json();
 
       if (!res.ok || !userData.success) {
+        logout();
         setMessage(userData.message || "Failed to load user profile");
         setLoading(false);
         return;

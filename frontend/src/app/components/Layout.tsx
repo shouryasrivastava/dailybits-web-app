@@ -12,10 +12,10 @@ import {
   LogOut,
 } from "lucide-react";
 import { cn } from "./ui/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { getCurrentUser, getUserRole, logout } from "../utils/storage";
+import { AUTH_CHANGED_EVENT, getCurrentUser, logout } from "../utils/storage";
 import { supabase } from "../utils/supabase";
 
 /** Sidebar navigation items */
@@ -31,10 +31,25 @@ export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [authState, setAuthState] = useState(() => ({
+    token: localStorage.getItem("access_token"),
+    currentUser: getCurrentUser(),
+  }));
 
-  const userRole = getUserRole();
-  const currentUser = getCurrentUser();
-  const token = localStorage.getItem("access_token");
+  const { token, currentUser } = authState;
+  const isAdmin = !!(token && currentUser?.isAdmin);
+
+  useEffect(() => {
+    const onAuthChanged = () =>
+      setAuthState({
+        token: localStorage.getItem("access_token"),
+        currentUser: getCurrentUser(),
+      });
+    window.addEventListener(AUTH_CHANGED_EVENT, onAuthChanged);
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, onAuthChanged);
+    };
+  }, []);
 
   /** Handle user logout */
   const handleLogout = async () => {
@@ -45,7 +60,7 @@ export function Layout() {
 
   /** Add admin page if user is admin */
   const fullNavigation =
-    userRole === "administrator"
+    isAdmin
       ? [...navigation, { name: "Admin", href: "/admin", icon: Shield }]
       : navigation;
 
@@ -166,9 +181,12 @@ export function Layout() {
               /* Logout button */
               <button
                 onClick={handleLogout}
+                disabled={isCollapsed}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-neutral-100",
-                  isCollapsed && "justify-center",
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg",
+                  isCollapsed
+                    ? "justify-center hover:bg-transparent pointer-events-none cursor-default"
+                    : "hover:bg-neutral-100",
                 )}
               >
                 <LogOut className="w-5 h-5 text-rose-800" />
@@ -180,9 +198,12 @@ export function Layout() {
               /* Login button */
               <button
                 onClick={() => navigate("/login")}
+                disabled={isCollapsed}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-neutral-100",
-                  isCollapsed && "justify-center",
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg",
+                  isCollapsed
+                    ? "justify-center hover:bg-transparent pointer-events-none cursor-default"
+                    : "hover:bg-neutral-100",
                 )}
               >
                 <User className="w-5 h-5 text-slate-800" />

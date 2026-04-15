@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router";
 import { Search, Plus, Check, Settings } from "lucide-react";
-import { getUserRole, getCurrentUser } from "../utils/storage";
+import { getCurrentUser } from "../utils/storage";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -29,43 +29,48 @@ export function ProblemList() {
   const [todoIds, setTodoIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
-  const userRole = getUserRole();
   const currentUser = getCurrentUser();
   const token = localStorage.getItem("access_token");
   const accountNumber = currentUser?.accountNumber;
+  const isAdmin = !!(token && currentUser?.isAdmin);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadData() {
-      // Fetch all pages of problems
+    async function loadProblems() {
+      setLoading(true);
+
       try {
-        let page = 1;
-        const all: Problem[] = [];
+        // Fetch page 1 first so users see data quickly.
+        const firstPage = await fetchProblems(1);
+        if (cancelled) return;
+        setProblems(firstPage.results.map(apiProblemListToFrontend));
+        setLoading(false);
 
-        while (true) {
-          const res = await fetchProblems(page);
-          all.push(...res.results.map(apiProblemListToFrontend));
-          if (res.results.length < res.page_size) break;
+        // Fetch remaining pages in the background.
+        let page = 2;
+        let lastPage = firstPage;
+        while (lastPage.results.length === lastPage.page_size) {
+          lastPage = await fetchProblems(page);
+          if (cancelled) return;
+          if (lastPage.results.length > 0) {
+            setProblems((prev) => [
+              ...prev,
+              ...lastPage.results.map(apiProblemListToFrontend),
+            ]);
+          }
           page++;
-        }
-
-        if (!cancelled) {
-          setProblems(all);
         }
       } catch {
         if (!cancelled) {
           toast.error("Failed to load problems");
-        }
-      } finally {
-        if (!cancelled) {
           setLoading(false);
         }
       }
+    }
 
-      // Fetch current user's todo list (independent — won't block problems)
+    async function loadTodoState() {
       if (!token || !accountNumber) return;
-
       try {
         const todoRes = await fetchTodoItemsApi(accountNumber);
         if (!cancelled) {
@@ -76,7 +81,8 @@ export function ProblemList() {
       }
     }
 
-    loadData();
+    loadProblems();
+    loadTodoState();
 
     return () => {
       cancelled = true;
@@ -148,7 +154,7 @@ export function ProblemList() {
             Problem List
           </h1>
 
-          {userRole === "administrator" && (
+          {isAdmin && (
             <Link to="/admin/problems">
               <Button variant="outline" size="sm">
                 <Settings className="w-4 h-4 mr-1" />

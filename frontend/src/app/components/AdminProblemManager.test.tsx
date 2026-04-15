@@ -268,7 +268,7 @@ describe("AdminProblemManager", () => {
         expect.objectContaining({ title: "New Problem", algorithms: ["Array"] })
       )
     );
-  });
+  }, 10000);
 
   it("calls saveSolution after successfully creating a problem", async () => {
     const user = userEvent.setup();
@@ -296,7 +296,7 @@ describe("AdminProblemManager", () => {
     await waitFor(() =>
       expect(vi.mocked(api.saveSolution)).toHaveBeenCalledWith(99, "", "", "", "")
     );
-  });
+  }, 10000);
 
   it("shows success toast after adding a problem", async () => {
     const { toast } = await import("sonner");

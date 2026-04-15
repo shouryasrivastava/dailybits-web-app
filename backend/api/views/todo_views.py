@@ -7,10 +7,51 @@ from rest_framework.decorators import api_view
 def get_todo_list_by_account(request, account_number):
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT *
-            FROM todo_list_view
-            WHERE account_number = %s
-            ORDER BY added_at DESC
+            WITH user_todo AS (
+                SELECT
+                    t.todo_id,
+                    t.account_number,
+                    t.problem_id,
+                    t.added_at,
+                    t.source
+                FROM todo_item t
+                WHERE t.account_number = %s
+            )
+            SELECT
+                ut.todo_id,
+                ut.account_number,
+                ut.problem_id,
+                p.problem_title,
+                p.problem_description,
+                p.difficulty_level,
+                ut.added_at,
+                ut.source,
+                COALESCE(
+                    array_agg(a.algorithm_name) FILTER (WHERE a.algorithm_name IS NOT NULL),
+                    '{}'
+                ) AS algorithms,
+                EXISTS (
+                    SELECT 1
+                    FROM submission s
+                    WHERE s.account_number = ut.account_number
+                      AND s.problem_id = ut.problem_id
+                      AND s.is_correct = TRUE
+                ) AS is_completed
+            FROM user_todo ut
+            JOIN problem p ON ut.problem_id = p.problem_id
+            LEFT JOIN problem_algorithm pa ON p.problem_id = pa.problem_id
+            LEFT JOIN algorithm a ON pa.algorithm_id = a.algorithm_id
+            WHERE p.is_published = TRUE
+            GROUP BY
+                ut.todo_id,
+                ut.account_number,
+                ut.problem_id,
+                p.problem_title,
+                p.problem_description,
+                p.difficulty_level,
+                ut.added_at,
+                ut.source
+            ORDER BY ut.added_at DESC
         """, [account_number])
         columns = [col[0] for col in cursor.description] # type: ignore
         rows = cursor.fetchall()

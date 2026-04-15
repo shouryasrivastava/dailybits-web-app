@@ -98,8 +98,8 @@ export function AdminUserManager() {
       updateUser(updatedUser);
 
       const currentUser = getCurrentUser();
-      const isOwnAccount = currentUser.id === user.id;
-      if (isOwnAccount) {
+      const isOwnAccount = currentUser?.id === user.id;
+      if (isOwnAccount && currentUser) {
         setCurrentUser({ ...currentUser, isAdmin: newAdminStatus });
         setUserRole(newAdminStatus ? "administrator" : "user");
       }

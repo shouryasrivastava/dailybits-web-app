@@ -188,13 +188,21 @@ CREATE INDEX idx_study_plan_account ON study_plan (account_number);
 -- Problem Algorithm (used heavily in views)
 CREATE INDEX idx_problem_algorithm_problem ON problem_algorithm (problem_id);
 CREATE INDEX idx_problem_algorithm_algorithm ON problem_algorithm (algorithm_id);
+CREATE INDEX idx_problem_published_order ON problem (is_published, problem_id);
 
 -- Todo Item
 CREATE INDEX idx_todo_account ON todo_item (account_number);
 CREATE INDEX idx_todo_plan ON todo_item (plan_id);
+CREATE INDEX idx_todo_account_added_at ON todo_item (account_number, added_at DESC);
+CREATE UNIQUE INDEX idx_todo_account_problem_unique ON todo_item (account_number, problem_id);
 
 -- Study Note
 CREATE INDEX idx_study_note_todo ON study_note (todo_id);
+
+-- Speeds completion checks in todo/progress queries
+CREATE INDEX idx_submission_account_problem_correct
+ON submission (account_number, problem_id)
+WHERE is_correct = TRUE;
 
 -- Problem Example and Constraint
 CREATE INDEX idx_problem_example_problem ON problem_example (problem_id);
@@ -414,9 +422,8 @@ ORDER BY alg.algorithm_name;
 -- ============================================
 -- FUNCTIONS
 -- ============================================
--- Accept Study Plan -> Bulk insert problems into todo_item
--- Called when user clicks "Accept Plan" on the study plan page
--- Duplicate checking handled in Django before calling this function
+-- Accept Study Plan -> Bulk insert problems into todo_item.
+-- Existing todo items are converted to source='study_plan' and linked to plan_id.
 CREATE OR REPLACE FUNCTION accept_study_plan(
     p_account_number INT,
     p_plan_id        INT
@@ -430,7 +437,12 @@ BEGIN
         p_plan_id,
         'study_plan'
     FROM study_plan_problems spp
-    WHERE spp.plan_id = p_plan_id;
+    WHERE spp.plan_id = p_plan_id
+    ON CONFLICT (account_number, problem_id)
+    DO UPDATE SET
+        plan_id = EXCLUDED.plan_id,
+        source = 'study_plan',
+        added_at = CURRENT_TIMESTAMP;
 END;
 $$ LANGUAGE plpgsql;
 

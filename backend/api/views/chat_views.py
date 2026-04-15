@@ -189,17 +189,43 @@ def accept_plan(request):
     if not account_number or not plan_id:
         return Response({"error": "account_number and plan_id are required"}, status=400)
 
-    with connection.cursor() as cur:
-        cur.execute("SELECT is_accepted FROM study_plan WHERE plan_id = %s AND account_number = %s",
-                     [plan_id, account_number])
-        row = cur.fetchone()
-        if not row:
-            return Response({"error": "Plan not found"}, status=404)
-        if row[0]:
-            return Response({"error": "Plan already accepted"}, status=400)
+    with transaction.atomic():
+        with connection.cursor() as cur:
+            cur.execute(
+                "SELECT is_accepted FROM study_plan WHERE plan_id = %s AND account_number = %s",
+                [plan_id, account_number],
+            )
+            row = cur.fetchone()
+            if not row:
+                return Response({"error": "Plan not found"}, status=404)
+            if row[0]:
+                return Response({"error": "Plan already accepted"}, status=400)
 
-        cur.execute("SELECT accept_study_plan(%s, %s)", [account_number, plan_id])
-        cur.execute("UPDATE study_plan SET is_accepted = TRUE WHERE plan_id = %s", [plan_id])
+            # Add all plan problems to todo. If a problem already exists in todo,
+            # treat it as coming from study plan and attach this plan_id.
+            cur.execute(
+                """
+                INSERT INTO todo_item (account_number, problem_id, plan_id, source)
+                SELECT
+                    %s,
+                    spp.problem_id,
+                    %s,
+                    'study_plan'
+                FROM study_plan_problems spp
+                WHERE spp.plan_id = %s
+                ON CONFLICT (account_number, problem_id)
+                DO UPDATE SET
+                    plan_id = EXCLUDED.plan_id,
+                    source = 'study_plan',
+                    added_at = CURRENT_TIMESTAMP
+                """,
+                [account_number, plan_id, plan_id],
+            )
+
+            cur.execute(
+                "UPDATE study_plan SET is_accepted = TRUE WHERE plan_id = %s",
+                [plan_id],
+            )
 
     return Response({"success": True, "plan_id": plan_id})
 
