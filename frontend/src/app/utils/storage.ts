@@ -12,6 +12,9 @@ const STORAGE_KEYS = {
 };
 
 export const AUTH_CHANGED_EVENT = "dailybits-auth-changed";
+const CODE_CACHE_PREFIX = `${STORAGE_KEYS.CODE_CACHE}_`;
+const COMPLETED_PREFIX = `${STORAGE_KEYS.COMPLETED}_`;
+const TODO_PREFIX = `${STORAGE_KEYS.TODO}_`;
 
 function emitAuthChanged(): void {
   if (typeof window !== "undefined") {
@@ -103,8 +106,14 @@ const defaultUsers: AppUser[] = [
 ];
 
 // Completed Problems
+function getScopedStorageKey(prefix: string): string {
+  const currentUser = getCurrentUser();
+  const accountScope = currentUser?.accountNumber ?? "guest";
+  return `${prefix}${accountScope}`;
+}
+
 export function getCompletedProblems(): CompletedProblem[] {
-  const data = localStorage.getItem(STORAGE_KEYS.COMPLETED);
+  const data = localStorage.getItem(getScopedStorageKey(COMPLETED_PREFIX));
   if (!data) return [];
   const parsed = JSON.parse(data);
   return parsed.map((item: any) => ({
@@ -119,12 +128,15 @@ export function saveCompletedProblem(completed: CompletedProblem): void {
     (item) => item.problemId !== completed.problemId,
   );
   filtered.push(completed);
-  localStorage.setItem(STORAGE_KEYS.COMPLETED, JSON.stringify(filtered));
+  localStorage.setItem(
+    getScopedStorageKey(COMPLETED_PREFIX),
+    JSON.stringify(filtered),
+  );
 }
 
 // Todo Items
 export function getTodoItems(): TodoItem[] {
-  const data = localStorage.getItem(STORAGE_KEYS.TODO);
+  const data = localStorage.getItem(getScopedStorageKey(TODO_PREFIX));
   if (!data) return [];
   const parsed = JSON.parse(data);
   return parsed.map((item: any) => ({
@@ -138,25 +150,29 @@ export function addTodoItem(item: TodoItem): void {
   // Don't add duplicates
   if (existing.some((t) => t.problemId === item.problemId)) return;
   existing.push(item);
-  localStorage.setItem(STORAGE_KEYS.TODO, JSON.stringify(existing));
+  localStorage.setItem(getScopedStorageKey(TODO_PREFIX), JSON.stringify(existing));
 }
 
 // Code Cache (for unsaved work)
+function getCodeCacheStorageKey(): string {
+  return getScopedStorageKey(CODE_CACHE_PREFIX);
+}
+
 export function saveCodeCache(problemId: string, code: string): void {
   const cache = getCodeCache();
   cache[problemId] = code;
-  localStorage.setItem(STORAGE_KEYS.CODE_CACHE, JSON.stringify(cache));
+  localStorage.setItem(getCodeCacheStorageKey(), JSON.stringify(cache));
 }
 
 export function getCodeCache(): Record<string, string> {
-  const data = localStorage.getItem(STORAGE_KEYS.CODE_CACHE);
+  const data = localStorage.getItem(getCodeCacheStorageKey());
   return data ? JSON.parse(data) : {};
 }
 
 export function clearCodeCache(problemId: string): void {
   const cache = getCodeCache();
   delete cache[problemId];
-  localStorage.setItem(STORAGE_KEYS.CODE_CACHE, JSON.stringify(cache));
+  localStorage.setItem(getCodeCacheStorageKey(), JSON.stringify(cache));
 }
 
 // User Role
@@ -227,6 +243,11 @@ export function logout(): void {
   localStorage.removeItem("user");
   localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   localStorage.removeItem(STORAGE_KEYS.USER_ROLE);
+  // One-time legacy cleanup: old global cache key from before per-user scoping.
+  localStorage.removeItem(STORAGE_KEYS.CODE_CACHE);
+  // One-time legacy cleanup for old global completed/todo keys.
+  localStorage.removeItem(STORAGE_KEYS.COMPLETED);
+  localStorage.removeItem(STORAGE_KEYS.TODO);
   emitAuthChanged();
 }
 
