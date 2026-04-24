@@ -6,6 +6,9 @@ Computer science students and interview candidates face significant challenges i
 
 DailyBits is a web-based, AI-powered learning platform that supports coding practice through personalized, structured problem-solving.
 
+## Deployment
+The app is deployed and can be accessed here: https://dailybits-web-app.vercel.app/todo
+
 ## Objective
 
 Develop an AI-powered coding practice platform that:
