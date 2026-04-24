@@ -10,7 +10,7 @@
 import { Problem, Difficulty, AppUser, TodoItem } from "../types";
 import { logout } from "./storage";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 // ============================================================
 // Generic fetch wrapper
