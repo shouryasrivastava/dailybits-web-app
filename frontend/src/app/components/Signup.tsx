@@ -37,7 +37,7 @@ export default function Signup() {
     const token = data.session?.access_token;
     if (token) {
       // If email confirmation is disabled, session exists immediately.
-      await fetch("http://127.0.0.1:8000/auth/me/", {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}/auth/me/`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

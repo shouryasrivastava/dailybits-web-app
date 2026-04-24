@@ -38,7 +38,7 @@ export default function Login() {
 
       saveToken(token);
 
-      const res = await fetch("http://127.0.0.1:8000/auth/me/", {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}/auth/me/`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
